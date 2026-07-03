@@ -11,14 +11,13 @@
 
 require('dotenv').config();
 const { google } = require('googleapis');
-const { getAuthConfig } = require('./auth');
+const { getAuthClient } = require('./auth');
 
 async function getFormsClient() {
-  const auth = new google.auth.GoogleAuth(getAuthConfig([
+  return google.forms({ version: 'v1', auth: getAuthClient([
     'https://www.googleapis.com/auth/forms.body.readonly',
     'https://www.googleapis.com/auth/forms.responses.readonly',
-  ]));
-  return google.forms({ version: 'v1', auth: await auth.getClient() });
+  ]) });
 }
 
 // 폼 응답에서 특정 문항의 텍스트 답변 추출 (RADIO/CHECKBOX 선택지도 textAnswers로 반환됨)

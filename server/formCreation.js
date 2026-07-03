@@ -8,7 +8,7 @@
 
 require('dotenv').config();
 const { google } = require('googleapis');
-const { getAuthConfig } = require('./auth');
+const { getAuthClient } = require('./auth');
 
 // 폼 편집 URL(또는 단순 ID)에서 Google Forms 파일 ID만 추출
 function extractFormId(value) {
@@ -39,13 +39,11 @@ function buildFormName(year, month, typeChar, level) {
 }
 
 async function getDriveClient() {
-  const auth = new google.auth.GoogleAuth(getAuthConfig(['https://www.googleapis.com/auth/drive']));
-  return google.drive({ version: 'v3', auth: await auth.getClient() });
+  return google.drive({ version: 'v3', auth: getAuthClient(['https://www.googleapis.com/auth/drive']) });
 }
 
 async function getFormsClient() {
-  const auth = new google.auth.GoogleAuth(getAuthConfig(['https://www.googleapis.com/auth/forms.body']));
-  return google.forms({ version: 'v1', auth: await auth.getClient() });
+  return google.forms({ version: 'v1', auth: getAuthClient(['https://www.googleapis.com/auth/forms.body']) });
 }
 
 const DRIVE_OPT = {

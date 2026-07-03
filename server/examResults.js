@@ -10,7 +10,7 @@
  * ========================================================================= */
 const path = require('path');
 const { google } = require('googleapis');
-const { getAuthConfig } = require('./auth');
+const { getAuthClient } = require('./auth');
 
 const RESULT_SHEETS = {
   NAC: {
@@ -50,9 +50,7 @@ const COL = {
 };
 
 async function getSheetsClient() {
-  const auth = new google.auth.GoogleAuth(getAuthConfig(['https://www.googleapis.com/auth/spreadsheets']));
-  const authClient = await auth.getClient();
-  return google.sheets({ version: 'v4', auth: authClient });
+  return google.sheets({ version: 'v4', auth: getAuthClient(['https://www.googleapis.com/auth/spreadsheets']) });
 }
 
 function getFormTypeForMonth(month) {

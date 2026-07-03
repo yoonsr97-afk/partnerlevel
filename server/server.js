@@ -4,7 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const crypto = require('crypto');
 const { google } = require('googleapis');
-const { getAuthConfig } = require('./auth');
+const { getAuthClient } = require('./auth');
 const { sendExamEmails } = require('./mailer');
 const { generateCompanyResultPdf } = require('./certificate');
 const { RESULT_SHEETS, fetchResultSheetRows, findExistingResult, appendResultRow } = require('./examResults');
@@ -70,9 +70,7 @@ function extractDateParts(timestampText) {
 }
 
 async function getSheetsClient() {
-  const auth = new google.auth.GoogleAuth(getAuthConfig(['https://www.googleapis.com/auth/spreadsheets']));
-  const authClient = await auth.getClient();
-  return google.sheets({ version: 'v4', auth: authClient });
+  return google.sheets({ version: 'v4', auth: getAuthClient(['https://www.googleapis.com/auth/spreadsheets']) });
 }
 
 // 시트(탭)의 내부 grid ID를 조회한다 - 색상 변경(batchUpdate)에 필요하다
@@ -212,10 +210,8 @@ app.get('/api/health', async (req, res) => {
   let googleReachable = false;
   let googleError = null;
   try {
-    const { google } = require('googleapis');
-    const { getAuthConfig } = require('./auth');
-    const auth = new google.auth.GoogleAuth(getAuthConfig(['https://www.googleapis.com/auth/spreadsheets']));
-    const client = await auth.getClient();
+    const { getAuthClient: _getAuth } = require('./auth');
+    const client = _getAuth(['https://www.googleapis.com/auth/spreadsheets']);
     await client.getAccessToken();
     googleReachable = true;
   } catch (e) {

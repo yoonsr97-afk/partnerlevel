@@ -18,7 +18,7 @@ const { google } = require('googleapis');
 const path = require('path');
 const fs = require('fs');
 const { gradeSubjectiveAnswer } = require('./aiGrading');
-const { getAuthConfig } = require('./auth');
+const { getAuthClient } = require('./auth');
 
 const ANSWER_KEYS_DIR = path.join(__dirname, 'templates', 'answer-keys');
 if (!fs.existsSync(ANSWER_KEYS_DIR)) {
@@ -26,18 +26,16 @@ if (!fs.existsSync(ANSWER_KEYS_DIR)) {
 }
 
 async function getFormsClient() {
-  const auth = new google.auth.GoogleAuth(getAuthConfig([
+  return google.forms({ version: 'v1', auth: getAuthClient([
     'https://www.googleapis.com/auth/forms.body.readonly',
     'https://www.googleapis.com/auth/forms.responses.readonly',
-  ]));
-  return google.forms({ version: 'v1', auth: await auth.getClient() });
+  ]) });
 }
 
 async function getDriveClient() {
-  const auth = new google.auth.GoogleAuth(getAuthConfig([
+  return google.drive({ version: 'v3', auth: getAuthClient([
     'https://www.googleapis.com/auth/drive.metadata.readonly',
-  ]));
-  return google.drive({ version: 'v3', auth: await auth.getClient() });
+  ]) });
 }
 
 function extractFormId(formUrl) {
