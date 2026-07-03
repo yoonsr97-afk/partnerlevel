@@ -1,0 +1,2 @@
+[phases.setup]
+nixPkgs = ['libreoffice', 'noto-fonts-cjk-serif']
