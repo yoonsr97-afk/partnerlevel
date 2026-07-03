@@ -221,7 +221,7 @@ function getPartners() {
 
 /* 백엔드 URL - 로컬/서버 환경 자동 감지
  * 서버 배포 후 아래 PROD_API_URL을 Railway 도메인으로 교체하면 됩니다. */
-const PROD_API_URL = 'https://your-railway-domain.up.railway.app';
+const PROD_API_URL = 'https://partnerlevel-production.up.railway.app';
 const SHEETS_API_BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
   ? 'http://localhost:4000'
   : PROD_API_URL;
