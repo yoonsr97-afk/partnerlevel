@@ -1,0 +1,629 @@
+{
+  "examType": "NAC",
+  "formType": "C",
+  "formId": "1vfrtWBHAQ7QPlwGENK4ToG86x7xnHBukz7Bz4lwjbjE",
+  "pointsPerObjective": 1.5,
+  "nameQuestionId": "11b57c42",
+  "_note": [
+    "객관식 RADIO: correctAnswer에 정답 선택지 텍스트를 그대로 입력 (폼에 퀴즈정답이 없으면 빈 문자열)",
+    "객관식 CHECKBOX: correctAnswers 배열에 정답 선택지들 입력",
+    "주관식: modelAnswer는 docx에서 자동 추출됨, rubric 직접 입력 가능, maxScore 수정 가능"
+  ],
+  "objectiveQuestions": [
+    {
+      "questionId": "73db4852",
+      "title": "(C20_R1) NAC 정책서버 모델의 HDD/SSD 는?",
+      "type": "RADIO",
+      "options": [
+        "HDD 500Gbyte / SSD 32Gbyte",
+        "HDD 1Tbyte / SSD 64Gbyte",
+        "HDD 500Gbyte / SSD 128Gbyte",
+        "HDD 1Tbyte / SSD 128Gbyte"
+      ],
+      "correctAnswer": "HDD 1Tbyte / SSD 64Gbyte",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "572e2de5",
+      "title": "Serial 접속이 정상적이지 않을 경우 확인 방법이 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "Serial Cable 연결 위치 확인",
+        "접속 설정 중 잘못된 부분 확인",
+        "전원 연결 및 연결 LED 확인",
+        "LAN PORT LED Check"
+      ],
+      "correctAnswer": "LAN PORT LED Check",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "09a1f349",
+      "title": "업그레이드 관련 이미지 파일 업로드로 권장하는 폴더는?",
+      "type": "RADIO",
+      "options": [
+        "/disk",
+        "/boot",
+        "/tmp",
+        "/VC"
+      ],
+      "correctAnswer": "/tmp",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "57225205",
+      "title": "다음은 NAC Serial 접속 정보입니다. 설정사항에서 잘못된 것은?",
+      "type": "RADIO",
+      "options": [
+        "Port",
+        "Baud rate",
+        "Data bit",
+        "Stop bits"
+      ],
+      "correctAnswer": "Baud rate",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "17491cf3",
+      "title": "이미지 업그레이드 순서가 알맞은 것은?",
+      "type": "RADIO",
+      "options": [
+        "이슈등록 -> 이미지 다운로드 -> 이미지 업로드 -> 업그레이드",
+        "이미지 다운로드 -> 업그레이드 -> 업그레이드 확인",
+        "JIRA 접속 -> 이미지 다운로드 -> 이미지 업로드 -> 업그레이드",
+        "이미지 다운로드 -> 이미지 업로드 -> 업그레이드 -> 업그레이드 확인"
+      ],
+      "correctAnswer": "이미지 다운로드 -> 이미지 업로드 -> 업그레이드 -> 업그레이드 확인",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "3200c997",
+      "title": "Privileged Mode 에서 1번 항목에 알맞은 명령어를 입력하시오.",
+      "type": "RADIO",
+      "options": [
+        "quit",
+        "history",
+        "disable",
+        "help"
+      ],
+      "correctAnswer": "help",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "7fe22e05",
+      "title": "Remote Host 접속 설정에서 입력사항이 알맞은 사항은?",
+      "type": "RADIO",
+      "options": [
+        "Protocol :  SSH / Port 22",
+        "Protocol : Telnet / Port 23",
+        "Protocol : Telnet,SSL / Port 992",
+        "Protocol : SSH2/ Port 3910"
+      ],
+      "correctAnswer": "Protocol : SSH2/ Port 3910",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "2162bb64",
+      "title": "초기 출고버전에서 NAC 5.0이미지 업그레이드시 필수적으로 사용해야 하는 geniup 명령어 옵션사항은?",
+      "type": "RADIO",
+      "options": [
+        "-y",
+        "-c",
+        "-f",
+        "-d"
+      ],
+      "correctAnswer": "-c",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "182b2017",
+      "title": "NAC 구성요소와 기능이 맞지 않는것은?",
+      "type": "RADIO",
+      "options": [
+        "정책서버 - 정책 및 노드의 실시간 상태값 저장",
+        "정책서버 - AAA (인증, 권한부여, 계정관리)",
+        "네트워크 센서 - 다수의 에이전트 관리",
+        "에이전트 - 사용자 단말 무결성 검증"
+      ],
+      "correctAnswer": "네트워크 센서 - 다수의 에이전트 관리",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "60743609",
+      "title": "정책서버가 구성될 수 없는 구성방안은?",
+      "type": "RADIO",
+      "options": [
+        "단일 구성",
+        "분리 구성",
+        "미러 구성",
+        "HA 구성"
+      ],
+      "correctAnswer": "미러 구성",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "3e5064fa",
+      "title": "다음중 LOG-Server 에서 동작하는 2가지 데몬은?",
+      "type": "CHECKBOX",
+      "options": [
+        "Elasticsearch",
+        "Tomcat",
+        "Mysql",
+        "Radius"
+      ],
+      "correctAnswer": null,
+      "correctAnswers": [
+        "Elasticsearch",
+        "Tomcat"
+      ]
+    },
+    {
+      "questionId": "6682dc4a",
+      "title": "NAC 장비에서 공통적으로 구동되는 데몬이 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "sshd",
+        "sensord",
+        "procmond",
+        "gdcid"
+      ],
+      "correctAnswer": "gdcid",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "2c28e9ad",
+      "title": "NAC 구성간 통신사항에서 1번에 알맞은 내용은?",
+      "type": "RADIO",
+      "options": [
+        "TCP 443/80",
+        "TCP 443/80/6514",
+        "TCP 443/80/37",
+        "TCP 80/8080"
+      ],
+      "correctAnswer": "TCP 443/80/37",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "4ec62163",
+      "title": "네트워크 센서 멀티구성에서 권장되는 VLAN 갯수는?",
+      "type": "RADIO",
+      "options": [
+        "32",
+        "64",
+        "128",
+        "255"
+      ],
+      "correctAnswer": "64",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "5bf208e4",
+      "title": "네트워크 센서와 무선센서의 구성 요소가 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "Web Server",
+        "Enforcer",
+        "Log Server",
+        "Access Point"
+      ],
+      "correctAnswer": "Log Server",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "7b339c69",
+      "title": "정책서버가 외부서버와 통신하는 목적이 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "Genian Data Sync",
+        "PMS Patch list",
+        "Backdoor",
+        "Time Sync"
+      ],
+      "correctAnswer": "Backdoor",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "24eab084",
+      "title": "설정모드 별 지원하는 구성방안이 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "Interactive Wizard Mode / 분리구성",
+        "Interactive Wizard Mode / HA 구성",
+        "Manual Configuration Mode / 분리구성",
+        "Manual Configuration Mode / HA 구성"
+      ],
+      "correctAnswer": "Interactive Wizard Mode / HA 구성",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "0f3d6593",
+      "title": "다음은 HA 구성에서 사용하는 HA 명령어 항목입니다. HA구성시 사용하는 명령어가 아닌것을 고르시오",
+      "type": "RADIO",
+      "options": [
+        "ha group",
+        "ha linkupdelay",
+        "ha property",
+        "ha timeout"
+      ],
+      "correctAnswer": "ha property",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "7d9c744f",
+      "title": "NAC 정책서버 분리구성 Case 가 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "Web Server / Database Server / LOG Server /  Radius Server",
+        "Web Server / Database Server / LOG Server +  Radius Server",
+        "Web Server / Database Server + LOG Server /  Radius Server",
+        "Web Server + Database Server + LOG Server /  Radius Server"
+      ],
+      "correctAnswer": "Web Server / Database Server / LOG Server +  Radius Server",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "7fcd55d5",
+      "title": "NAC 정책서버 HA 구성 Case 가 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "Web Server + Database Server + LOG Server +  Radius Server",
+        "Web Server / Database Server / LOG Server",
+        "Web Server + Database Server + LOG Server /  Radius Server",
+        "Web Server / Database Server / LOG Server +  Radius Server"
+      ],
+      "correctAnswer": "Web Server / Database Server / LOG Server +  Radius Server",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "385ebc50",
+      "title": "NAC 정책서버 configuration 사항중 3번안에 알맞은 내용은?",
+      "type": "RADIO",
+      "options": [
+        "data-server password",
+        "interface eth0 management-server enable",
+        "interface eth0 radius-server enable",
+        "log-server publish-port eth0"
+      ],
+      "correctAnswer": "interface eth0 radius-server enable",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "20e1a2e7",
+      "title": "NTP 서버를 지정하지 않을 경우 자동으로 지정되는 서버는?",
+      "type": "RADIO",
+      "options": [
+        "time.bora.net",
+        "time.nuri.net",
+        "time.nist.gov",
+        "pool.ntp.org"
+      ],
+      "correctAnswer": "pool.ntp.org",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "637c0ad0",
+      "title": "VRRP에서 사용하는 Virtual MAC은?",
+      "type": "RADIO",
+      "options": [
+        "0007.B400.XXYY",
+        "0000.5E00.XXYY",
+        "0000.5C00.XXYY",
+        "0000.0C00.XXYY"
+      ],
+      "correctAnswer": "0000.5E00.XXYY",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "40c17efd",
+      "title": "Mysql Replication 에서 사용하는 TCP 포트는?",
+      "type": "RADIO",
+      "options": [
+        "TCP 1443",
+        "TCP 5432",
+        "TCP 3306",
+        "TCP 3351"
+      ],
+      "correctAnswer": "TCP 3306",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "3abcdc67",
+      "title": "권한 객체를 구성하는 항목이 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "네트워크",
+        "노드",
+        "서비스",
+        "시간"
+      ],
+      "correctAnswer": "노드",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "33c2c76b",
+      "title": "단말에 사용자 인증방식 및 에이전트 동작방식을 설정하는 정책은?",
+      "type": "RADIO",
+      "options": [
+        "노드정책",
+        "제어정책",
+        "장치제어정책",
+        "컴플라이언스 정책"
+      ],
+      "correctAnswer": "노드정책",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "112af1fd",
+      "title": "노드를 대상으로하는 정책이 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "노드정책",
+        "제어정책",
+        "Windows 업데이트 정책",
+        "무선랜 정책"
+      ],
+      "correctAnswer": "무선랜 정책",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "4a0c1beb",
+      "title": "CWP  접근허용 그룹으로 설정할 수 있는것은?",
+      "type": "RADIO",
+      "options": [
+        "노드그룹",
+        "무선랜 그룹",
+        "네트워크 그룹",
+        "사용자 그룹"
+      ],
+      "correctAnswer": "네트워크 그룹",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "6ec7e64e",
+      "title": "SSL 인증서를 발급받기 위한 CSR 작성 시 필요없는 사항은?",
+      "type": "RADIO",
+      "options": [
+        "호스트명",
+        "공개키",
+        "이메일",
+        "개인키"
+      ],
+      "correctAnswer": "개인키",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "0df0db85",
+      "title": "백업 수행 시 제공하는 스토리지 형태가 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "CIFS",
+        "NFS",
+        "SFTP",
+        "SCP"
+      ],
+      "correctAnswer": "SCP",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "323b5d04",
+      "title": "NAC 백업 수행 시 백업파일에 포함되지 않는것은?",
+      "type": "RADIO",
+      "options": [
+        "Database sql",
+        "System configuration",
+        "VC",
+        "Agent"
+      ],
+      "correctAnswer": "VC",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "6660cbea",
+      "title": "시스템 라이선스 장비 수량 초과 시 표시되지 않는 노드 세부정보 사항이 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "스위치",
+        "포트",
+        "트래픽",
+        "노드타입"
+      ],
+      "correctAnswer": "노드타입",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "74b6a80e",
+      "title": "DNS Lookup 순서와 DNS 제어 플러그인에서 관리하는 항목은?",
+      "type": "RADIO",
+      "options": [
+        "DNS 캐시 > hosts > hosts.ics > DNS Query / hosts.ics",
+        "hosts > hosts.ics > DNS 캐시 > DNS Query / hosts",
+        "hosts.ics > hosts > DNS 캐시 > DNS Query / DNS 캐시",
+        "DNS 캐시 > hosts.ics > hosts > DNS Query / hosts"
+      ],
+      "correctAnswer": "DNS 캐시 > hosts.ics > hosts > DNS Query / hosts",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "5036af7d",
+      "title": "Windows 보안설정에서 강제화 하는 사항이 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "원격 데스크톱",
+        "Windows Vista 예약작업",
+        "화면 끄기 대기시간",
+        "자동실행"
+      ],
+      "correctAnswer": "Windows Vista 예약작업",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "1b3ff3e3",
+      "title": "하드웨어 정보 수집 플러그인에서 수집하는 정보가 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "CPU 정보",
+        "메모리 정보",
+        "PC Type",
+        "모니터 정보"
+      ],
+      "correctAnswer": "모니터 정보",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "303a275d",
+      "title": "네트워크 정보 수집 플러그인에서 수집하는 정보가 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "IPv4 Address Mapping Table",
+        "IPv4 routing table",
+        "IPv6 routing table",
+        "adapter information for the local computer"
+      ],
+      "correctAnswer": "IPv6 routing table",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "4a09f0b9",
+      "title": "무선 랜 제어 플러그인에서 수행하지 않는것은?",
+      "type": "RADIO",
+      "options": [
+        "무선 인터페이스 제어",
+        "AP 정보 수집",
+        "무선 프로파일 배포",
+        "AP 모드 차단"
+      ],
+      "correctAnswer": "무선 프로파일 배포",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "1c0d73f7",
+      "title": "백신 정보수집 플러그인에서 정보를 수집하는 방법이 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "System link",
+        "WMI Query",
+        "File path",
+        "Registry"
+      ],
+      "correctAnswer": "File path",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "017f6c5c",
+      "title": "비밀번호 유효성 검사 플러그인에서 비밀번호 규칙으로 맞는것은?",
+      "type": "RADIO",
+      "options": [
+        "비밀번호는 최소 8자 이상이어야 합니다.",
+        "비밀번호는 반드시 알파벳 대문자를 포함해야 합니다.",
+        "비밀번호는 반드시 알파벳으로 시작해야 합니다.",
+        "비밀번호는 연속된 숫자를 사용하지 않아야 합니다."
+      ],
+      "correctAnswer": "비밀번호는 연속된 숫자를 사용하지 않아야 합니다.",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "1b54ac50",
+      "title": "인터페이스 제어 플러그인에서 제어하는 항목이 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "유선 인터페이스",
+        "브릿지 인터페이스",
+        "Promiscuous Mode 인터페이스",
+        "블루투스 인터페이스"
+      ],
+      "correctAnswer": "블루투스 인터페이스",
+      "correctAnswers": null
+    }
+  ],
+  "subjectiveQuestions": [
+    {
+      "questionId": "4967b490",
+      "title": "하드디스크가 존재하는 장비에서 하드디스크를 확인하는 명령어는?",
+      "maxScore": 4,
+      "modelAnswer": "show filesystem",
+      "rubric": "",
+      "_matchScore": "100%",
+      "_docxQuestion": "하드디스크가 존재하는 장비에서 하드디스크를 확인하는 명령어는?"
+    },
+    {
+      "questionId": "7d7d980a",
+      "title": "CLI Mode 계정 생성시 ID와 Password의 제한 조건에 대해서 설명하시오.",
+      "maxScore": 4,
+      "modelAnswer": "ID : 4~31 길이로 변경 / password : 최소 9길이 이상, 하나 이상의 특수문자, 영문자,숫자포함",
+      "rubric": "",
+      "_matchScore": "80%",
+      "_docxQuestion": "CLI Mode 계정 생성시 ID와 Password 제한 조건에 대해 설명하시오."
+    },
+    {
+      "questionId": "0247e024",
+      "title": "네트워크 센서 구성방안 5가지를 서술하시오.",
+      "maxScore": 4,
+      "modelAnswer": "단일구성, 멀티구성, HA구성, Bonding 구성, Mirror 구성",
+      "rubric": "",
+      "_matchScore": "100%",
+      "_docxQuestion": "네트워크 센서 구성방안 5가지를 서술하시오."
+    },
+    {
+      "questionId": "43fae232",
+      "title": "NAC 정책서버 기능을 3가지 이상 서술하시오.",
+      "maxScore": 4,
+      "modelAnswer": "NAC 정책 설정 기능 제공, 다수의 네트워크 센서 & 에이전트 관리, 정책 및 노드의 실시간 상태 값 저장, 발생되는 감사 로그 기록(저장), AAA: 인증, 권한 부여, 계정관리 기능",
+      "rubric": "",
+      "_matchScore": "100%",
+      "_docxQuestion": "NAC 정책서버 기능을 3가지 이상 서술하시오."
+    },
+    {
+      "questionId": "728431b3",
+      "title": "Mysql Replication 설정 옵션값을 나열하세요.",
+      "maxScore": 4,
+      "modelAnswer": "enable, serverid, username, password, masterhost, port",
+      "rubric": "",
+      "_matchScore": "80%",
+      "_docxQuestion": "Mysql Replication 설정 옵션값을 나열하시오"
+    },
+    {
+      "questionId": "6b7c1c17",
+      "title": "NAC 5.0 Version 에서 추가된 설정모드는?",
+      "maxScore": 4,
+      "modelAnswer": "Interactive Wizard 모드",
+      "rubric": "",
+      "_matchScore": "67%",
+      "_docxQuestion": "NAC 5.0 Version에서 추가된 설정모드는?"
+    },
+    {
+      "questionId": "1748b77a",
+      "title": "ARP Spoofing 위험을 탐지하는 패킷 정보는?",
+      "maxScore": 4,
+      "modelAnswer": "Ethernet II Frame Source MAC 주소, ARP Sender MAC 주소",
+      "rubric": "",
+      "_matchScore": "100%",
+      "_docxQuestion": "ARP Spoofing 위험을 탐지하는 패킷 정보는?"
+    },
+    {
+      "questionId": "3cb1d116",
+      "title": "NAC에서 수립할 수 있는 정책 7가지를 나열하시오.",
+      "maxScore": 4,
+      "modelAnswer": "노드 정책, RADIUS 정책, 제어 정책 무선랜 정책, windows 업데이트 정책, 장치 제어 정책, 컴플라이언스 정책",
+      "rubric": "",
+      "_matchScore": "100%",
+      "_docxQuestion": "NAC에서 수립할 수 있는 정책 7가지를 나열하시오."
+    },
+    {
+      "questionId": "00dd7de5",
+      "title": "소프트웨어 정보 수집 플러그인에서 소프트웨어 정보가 수집되지 않는 3가지 Registry 값은?",
+      "maxScore": 4,
+      "modelAnswer": "UninstallString,SystemComponent,WindowsInstaller",
+      "rubric": "",
+      "_matchScore": "90%",
+      "_docxQuestion": "소프트웨어 정보 수집 플러그인에서 소프트웨어 정보가 수집되지 않는 Registry 값은?"
+    },
+    {
+      "questionId": "218f55b2",
+      "title": "운영체제 정보 수집 플러그인에서 Registry 값으로 수집되는 정보값 중 3가지만 나열하시오.",
+      "maxScore": 4,
+      "modelAnswer": "IE 버전 수집, 윈도우 설치 날짜, 윈도우 라이선스, 자동 업데이트 정보, 원격 데스크탑 정보, 예약 작업 사용",
+      "rubric": "",
+      "_matchScore": "100%",
+      "_docxQuestion": "운영체제 정보 수집 플러그인에서 Registry 값으로 수집되는 정보값 중 3가지만 나열하시오."
+    }
+  ]
+}

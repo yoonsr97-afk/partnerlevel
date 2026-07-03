@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>파트너 평가 관리 시스템</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="server/templates/partner_evaluation_icon.svg">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- 로그인 화면 -->
+<div id="loginOverlay" class="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">
+      <img src="server/templates/partner_evaluation_icon.svg" alt="logo" width="48" height="48">
+    </div>
+    <h2 class="login-title">파트너 평가 관리 시스템</h2>
+    <form id="loginForm" class="login-form" autocomplete="off">
+      <div class="login-field">
+        <label class="login-label" for="loginUsername">아이디</label>
+        <input class="login-input" id="loginUsername" type="text" placeholder="아이디 입력" autocomplete="username">
+      </div>
+      <div class="login-field">
+        <label class="login-label" for="loginPassword">비밀번호</label>
+        <input class="login-input" id="loginPassword" type="password" placeholder="비밀번호 입력" autocomplete="current-password">
+      </div>
+      <p id="loginError" class="login-error hidden"></p>
+      <button type="submit" id="loginBtn" class="btn btn-primary login-btn">로그인</button>
+    </form>
+  </div>
+</div>
+
+<header class="app-header">
+  <h1 class="app-title">파트너 평가 관리 시스템</h1>
+  <div class="header-right">
+      <div class="session-timer-badge hidden" id="sessionTimerBadge">
+        <svg class="session-timer-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" width="14" height="14">
+          <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M10 6v4l2.5 2.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <span id="sessionTimerDisplay">--:--</span>
+      </div>
+      <button class="btn btn-secondary btn-small" id="sessionRefreshBtn" data-action="session-refresh" title="세션 시간 갱신">세션 갱신</button>
+      <button class="btn btn-secondary btn-small" id="logoutBtn" data-action="logout">로그아웃</button>
+    <div class="exam-type-switch" id="examTypeSwitch">
+      <button class="exam-type-btn active" data-action="switch-exam-type" data-exam-type="NAC">NAC</button>
+      <button class="exam-type-btn" data-action="switch-exam-type" data-exam-type="EDR">EDR</button>
+    </div>
+    <div class="month-select" id="monthSelect">
+      <button type="button" class="current-month" id="currentMonthBtn" data-action="toggle-month-dropdown"></button>
+      <div class="month-dropdown hidden" id="monthDropdown"></div>
+    </div>
+  </div>
+</header>
+
+<nav class="tab-nav" id="tabNav">
+  <button class="tab-btn active" data-tab="partners">파트너 목록</button>
+  <button class="tab-btn" data-tab="attendance">출석 체크</button>
+  <button class="tab-btn" data-tab="formCreate">문제 폼 생성</button>
+  <button class="tab-btn" data-tab="examSend">시험 발송</button>
+  <button class="tab-btn" data-tab="examCheck">응시 확인</button>
+  <button class="tab-btn" data-tab="grading">AI 채점</button>
+  <button class="tab-btn" data-tab="approval">승인 관리</button>
+  <button class="tab-btn" data-tab="passList">합격/불합격 확인</button>
+</nav>
+
+<main class="tab-content-wrap">
+
+  <section id="tab-partners" class="tab-panel active" data-tab-panel="partners">
+    <div class="panel-header">
+      <h2>파트너 목록</h2>
+      <button id="syncSheetsBtn" class="btn btn-primary">Google Sheets 연동</button>
+    </div>
+    <div id="partnersContent" class="panel-body"></div>
+  </section>
+
+  <section id="tab-attendance" class="tab-panel" data-tab-panel="attendance">
+    <div class="panel-header">
+      <h2>출석 체크</h2>
+      <div class="summary-badge" id="attendanceSummary">0 / 0</div>
+    </div>
+    <div id="attendanceContent" class="panel-body"></div>
+  </section>
+
+  <section id="tab-examSend" class="tab-panel" data-tab-panel="examSend">
+    <div class="panel-header">
+      <h2>시험 발송</h2>
+      <div class="exam-type-switch" id="examSendLevelSwitch">
+        <button class="exam-type-btn active" data-action="set-exam-send-level" data-level="초급">초급</button>
+        <button class="exam-type-btn" data-action="set-exam-send-level" data-level="중급">중급</button>
+      </div>
+      <button id="bulkSendExamBtn" class="btn btn-primary" disabled>선택 발송</button>
+    </div>
+    <div id="examSendContent" class="panel-body"></div>
+  </section>
+
+  <section id="tab-examCheck" class="tab-panel" data-tab-panel="examCheck">
+    <div class="panel-header">
+      <h2>응시 확인</h2>
+      <div class="summary-badge" id="examCheckSummary">0 / 0</div>
+      <button id="refreshExamCheckBtn" class="btn btn-secondary" data-action="refresh-exam-check">응시 현황 조회</button>
+    </div>
+    <div id="examCheckContent" class="panel-body"></div>
+  </section>
+
+  <section id="tab-grading" class="tab-panel" data-tab-panel="grading">
+    <div class="panel-header">
+      <h2>AI 채점</h2>
+      <button id="manualSyncGradingBtn" class="btn btn-secondary" data-action="manual-sync-grading">점수 동기화</button>
+    </div>
+    <div class="grading-url-bar">
+      <input type="text" id="gradeFormUrlInput" class="form-input grading-url-input"
+        placeholder="Google Forms URL 입력 (비우면 공유 드라이브에서 자동 탐색)">
+      <button id="gradeFromFormBtn" class="btn btn-primary" data-action="grade-from-form">AI 채점 실행</button>
+    </div>
+    <div id="gradingStatusBar" class="grading-status-bar hidden"></div>
+    <div id="gradingContent" class="panel-body"></div>
+  </section>
+
+  <section id="tab-formCreate" class="tab-panel" data-tab-panel="formCreate">
+    <div class="panel-header">
+      <h2>문제 폼 생성</h2>
+      <div class="exam-type-switch" id="formCreateLevelSwitch">
+        <button class="exam-type-btn active" data-action="set-form-level" data-level="초급">초급</button>
+        <button class="exam-type-btn" data-action="set-form-level" data-level="중급">중급</button>
+      </div>
+      <button id="refreshFormStatusBtn" class="btn btn-secondary" data-action="refresh-form-status">상태 새로고침</button>
+    </div>
+    <div id="formCreateContent" class="panel-body"></div>
+  </section>
+
+  <section id="tab-approval" class="tab-panel" data-tab-panel="approval">
+    <div class="panel-header">
+      <h2>승인 관리</h2>
+      <div id="approvalSheetLink"></div>
+    </div>
+    <div id="approvalContent" class="panel-body"></div>
+  </section>
+
+  <section id="tab-passList" class="tab-panel" data-tab-panel="passList">
+    <div class="panel-header">
+      <h2>합격/불합격 확인</h2>
+    </div>
+    <div id="passListContent" class="panel-body"></div>
+  </section>
+
+</main>
+
+<div id="modalOverlay" class="modal-overlay hidden">
+  <div class="modal-box">
+    <p id="modalMessage" class="modal-message"></p>
+    <div class="modal-actions">
+      <button id="modalCancelBtn" class="btn btn-secondary">취소</button>
+      <button id="modalConfirmBtn" class="btn btn-primary">확인</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+
+<!-- 세션 만료 경고 팝업 -->
+<div id="sessionWarningPopup" class="session-warning-popup hidden">
+  <div class="session-warning-icon">⏱</div>
+  <div class="session-warning-body">
+    <p class="session-warning-title">세션이 곧 만료됩니다</p>
+    <p class="session-warning-desc"><span id="sessionWarningCountdown">3:00</span> 후 자동 로그아웃됩니다.</p>
+  </div>
+  <div class="session-warning-actions">
+    <button class="btn btn-primary btn-small" data-action="session-refresh">세션 연장</button>
+    <button class="btn btn-secondary btn-small" data-action="logout">로그아웃</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

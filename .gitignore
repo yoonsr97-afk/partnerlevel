@@ -1,0 +1,14 @@
+# 환경변수 및 인증 키 (절대 커밋 금지)
+server/.env
+server/service-account.json
+
+# 의존성
+server/node_modules/
+
+# 임시/스크래치 파일
+server/*.txt
+server/dump-docx.js
+
+# 내부 설계 문서
+DESIGN-hp.md
+Genians_Design.md

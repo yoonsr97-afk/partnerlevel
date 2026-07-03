@@ -1,0 +1,626 @@
+{
+  "examType": "NAC",
+  "formType": "B",
+  "formId": "1ujDptwz26e0vPdEwkfpUINJaqKuk05J3xh-BjRHaM24",
+  "pointsPerObjective": 1.5,
+  "nameQuestionId": "2a3d3a33",
+  "_note": [
+    "객관식 RADIO: correctAnswer에 정답 선택지 텍스트를 그대로 입력 (폼에 퀴즈정답이 없으면 빈 문자열)",
+    "객관식 CHECKBOX: correctAnswers 배열에 정답 선택지들 입력",
+    "주관식: modelAnswer는 docx에서 자동 추출됨, rubric 직접 입력 가능, maxScore 수정 가능"
+  ],
+  "objectiveQuestions": [
+    {
+      "questionId": "1691d770",
+      "title": "NAC 장비 중 Serial 포트가 타입이 다른 장비는?",
+      "type": "RADIO",
+      "options": [
+        "C10_R1",
+        "C20_R1",
+        "C30_R1",
+        "ES50_R1"
+      ],
+      "correctAnswer": "C10_R1",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "56de42e9",
+      "title": "C50_R1 장비의 HDD와 SSD의 용량은?",
+      "type": "RADIO",
+      "options": [
+        "HDD 1Tbyte / SSD 256Gbyte",
+        "HDD 1Tbyte / SSD 64Gbyte",
+        "HDD 500Gbyte / SSD 256Gbyte",
+        "HDD 500Gbyte / SSD 128Gbyte"
+      ],
+      "correctAnswer": "HDD 1Tbyte / SSD 256Gbyte",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "42b4b181",
+      "title": "NAC 장비에서 사용하는 시리얼 포트가 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "DB9",
+        "RS232",
+        "RJ45",
+        "TTL"
+      ],
+      "correctAnswer": "TTL",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "043dcea0",
+      "title": "Remote Host 접속 설정에서 입력사항이 알맞은 사항은?",
+      "type": "RADIO",
+      "options": [
+        "Protocol :  SSH / Port 22",
+        "Protocol : Telnet / Port 23",
+        "Protocol : Telnet,SSL / Port 992",
+        "Protocol : SSH2/ Port 3910"
+      ],
+      "correctAnswer": "Protocol : SSH2/ Port 3910",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "7d850731",
+      "title": "Privileged Mode 에서 4번 항목에 알맞은 명령어를 입력하시오.",
+      "type": "RADIO",
+      "options": [
+        "quit",
+        "history",
+        "disable",
+        "help"
+      ],
+      "correctAnswer": "disable",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "64232c79",
+      "title": "이미지 업그레이드 순서가 알맞은 것은?",
+      "type": "RADIO",
+      "options": [
+        "이슈등록 -> 이미지 다운로드 -> 이미지 업로드 -> 업그레이드",
+        "이미지 다운로드 -> 업그레이드 -> 업그레이드 확인",
+        "JIRA 접속 -> 이미지 다운로드 -> 이미지 업로드 -> 업그레이드",
+        "이미지 다운로드 -> 이미지 업로드 -> 업그레이드 -> 업그레이드 확인"
+      ],
+      "correctAnswer": "이미지 다운로드 -> 이미지 업로드 -> 업그레이드 -> 업그레이드 확인",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "1aa4e21f",
+      "title": "초기 출고버전에서 NAC 5.0이미지 업그레이드시 필수적으로 사용해야 하는 geniup 명령어 옵션사항은?",
+      "type": "RADIO",
+      "options": [
+        "-y",
+        "-c",
+        "-f",
+        "-d"
+      ],
+      "correctAnswer": "-c",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "5df9c7be",
+      "title": "Serial 접속을 위한 설정사항 중 ( ) 안에 포함되는 값은?",
+      "type": "RADIO",
+      "options": [
+        "9600",
+        "38400",
+        "115200",
+        "230400"
+      ],
+      "correctAnswer": "115200",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "4db51b6e",
+      "title": "NAC 구성요소 별 기능이 맞지 않는것은?",
+      "type": "RADIO",
+      "options": [
+        "정책서버 - NAC 정책 설정 기능 제공",
+        "네트워크 센서 - 단말 정보 수집",
+        "무선센서 - Wireless 정보 수집",
+        "에이전트 - 단말 무결성 검증"
+      ],
+      "correctAnswer": "네트워크 센서 - 단말 정보 수집",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "686c2405",
+      "title": "네트워크 센서와 무선센서의 구성 요소가 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "Web Server",
+        "Enforcer",
+        "Log Server",
+        "Access Point"
+      ],
+      "correctAnswer": "Log Server",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "3eeca377",
+      "title": "정책서버가 외부서버와 통신하는 목적이 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "Genian Data Sync",
+        "PMS Patch list",
+        "Backdoor",
+        "Time Sync"
+      ],
+      "correctAnswer": "Backdoor",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "621015af",
+      "title": "NAC 장비에서 공통적으로 구동되는 데몬이 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "sshd",
+        "sensord",
+        "procmond",
+        "gdcid"
+      ],
+      "correctAnswer": "gdcid",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "698f8118",
+      "title": "네트워크 센서 멀티구성에서 권장되는 VLAN 갯수는?",
+      "type": "RADIO",
+      "options": [
+        "32",
+        "64",
+        "128",
+        "255"
+      ],
+      "correctAnswer": "64",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "1734c297",
+      "title": "네트워크 센서에서 구동하는 데몬이 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "sensord",
+        "sshd",
+        "tomcat",
+        "procmond"
+      ],
+      "correctAnswer": "tomcat",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "75a19c9b",
+      "title": "정책서버가 구성될 수 없는 구성방안은?",
+      "type": "RADIO",
+      "options": [
+        "단일 구성",
+        "분리 구성",
+        "미러 구성",
+        "HA 구성"
+      ],
+      "correctAnswer": "미러 구성",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "5cab7b5b",
+      "title": "NAC 구성간 통신사항에서 2번에 알맞은 내용은?",
+      "type": "RADIO",
+      "options": [
+        "TCP 443/80",
+        "TCP 443/80/6514",
+        "TCP 443/80/37",
+        "TCP 80/8080"
+      ],
+      "correctAnswer": "TCP 443/80",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "51a5ae12",
+      "title": "정책서버 HA 구성 시 포함되지 않는 명령어는?",
+      "type": "RADIO",
+      "options": [
+        "linkupdelay",
+        "timeout",
+        "no virtual-mac",
+        "priority"
+      ],
+      "correctAnswer": "no virtual-mac",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "738ffeb3",
+      "title": "정책서버 HA 구성 Slave 설정 순서 3번에 알맞은 사항은?",
+      "type": "RADIO",
+      "options": [
+        "HA 설정",
+        "Device-ID 설정",
+        "Debug 이벤트 설정",
+        "Database Server IP 설정"
+      ],
+      "correctAnswer": "HA 설정",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "7b348c31",
+      "title": "VRRP 에서 사용하는 멀티케스트 주소는?",
+      "type": "RADIO",
+      "options": [
+        "224.0.0.13",
+        "224.0.0.5",
+        "224.0.0.18",
+        "224.0.0.9"
+      ],
+      "correctAnswer": "224.0.0.18",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "44255755",
+      "title": "Mysql Replication 에서 사용하는 TCP 포트는?",
+      "type": "RADIO",
+      "options": [
+        "TCP 1443",
+        "TCP 5432",
+        "TCP 3306",
+        "TCP 3351"
+      ],
+      "correctAnswer": "TCP 3306",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "56962929",
+      "title": "NAC 정책서버 HA 구성 순서 중 4번안에 알맞은 내용은?",
+      "type": "RADIO",
+      "options": [
+        "Database Server 설정",
+        "Node Server IP 설정",
+        "Radius Server 설정",
+        "LOG Server 설정"
+      ],
+      "correctAnswer": "Node Server IP 설정",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "2ba1b5ab",
+      "title": "NAC 정책서버 configuration 사항중 2번안에 알맞은 내용은?",
+      "type": "RADIO",
+      "options": [
+        "data-server password",
+        "interface eth0 management-server enable",
+        "interface eth0 radius-server enable",
+        "log-server publish-port eth0"
+      ],
+      "correctAnswer": "interface eth0 radius-server enable",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "4c026518",
+      "title": "NTP 서버를 지정하지 않을 경우 자동으로 지정되는 서버는?",
+      "type": "RADIO",
+      "options": [
+        "time.bora.net",
+        "time.nuri.net",
+        "time.nist.gov",
+        "pool.ntp.org"
+      ],
+      "correctAnswer": "pool.ntp.org",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "7ba55d12",
+      "title": "Elasticsearch Cluster 설정 사항이 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "Cluster 동기화 이름",
+        "Cluster 동기화 대상 IP",
+        "Cluster 동기화 인터페이스",
+        "Cluster 동기화 포트"
+      ],
+      "correctAnswer": "Cluster 동기화 포트",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "463c520f",
+      "title": "사용자 관련 추가필드는 ( )개가 설정 가능하며, ( )개의 입력타입으로 입력받을 수 있습니다.",
+      "type": "RADIO",
+      "options": [
+        "20개/23개",
+        "9개/23개",
+        "9개/24개",
+        "20개/24개"
+      ],
+      "correctAnswer": "9개/24개",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "2844795a",
+      "title": "IP 용도에서 다수의 용도를 정의할 수 있는 항목은?",
+      "type": "RADIO",
+      "options": [
+        "IP 반납",
+        "IP 신규",
+        "장비 변경",
+        "사용자 변경"
+      ],
+      "correctAnswer": "IP 신규",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "6e2b4dda",
+      "title": "다음 노드 타입 중 시스템에서 정의되지 않은 항목은?",
+      "type": "RADIO",
+      "options": [
+        "보안장비",
+        "VOIP",
+        "VPN",
+        "Cloud 센서"
+      ],
+      "correctAnswer": "VPN",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "1eea58a5",
+      "title": "다음 중 NAC 외부 인증 저장소로 사용할 수 없는것은?",
+      "type": "RADIO",
+      "options": [
+        "Radius",
+        "LDAP",
+        "Mysql",
+        "Webhook"
+      ],
+      "correctAnswer": "Mysql",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "176c7e0b",
+      "title": "CWP  접근허용 그룹으로 설정할 수 있는것은?",
+      "type": "RADIO",
+      "options": [
+        "노드그룹",
+        "무선랜 그룹",
+        "네트워크 그룹",
+        "사용자 그룹"
+      ],
+      "correctAnswer": "네트워크 그룹",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "159a3a1d",
+      "title": "SSL 인증서를 발급받기 위한 CSR 작성 시 필요없는 사항은?",
+      "type": "RADIO",
+      "options": [
+        "호스트명",
+        "공개키",
+        "이메일",
+        "개인키"
+      ],
+      "correctAnswer": "개인키",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "39cbf3a2",
+      "title": "백업 수행 시 제공하는 스토리지 형태가 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "CIFS",
+        "NFS",
+        "SFTP",
+        "SCP"
+      ],
+      "correctAnswer": "SCP",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "776c8291",
+      "title": "NAC 백업 수행 시 백업파일에 포함되지 않는것은?",
+      "type": "RADIO",
+      "options": [
+        "Database sql",
+        "System configuration",
+        "VC",
+        "Agent"
+      ],
+      "correctAnswer": "VC",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "60949d49",
+      "title": "NAC Agent 동작과정에서 1번안에 알맞은 사항은?",
+      "type": "RADIO",
+      "options": [
+        "GnAccount",
+        "GnPlugin",
+        "GnStart",
+        "GnAgent"
+      ],
+      "correctAnswer": "GnStart",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "7f37778f",
+      "title": "모양 및 개인설정 플러그인에서 설정하지 않는것은?",
+      "type": "RADIO",
+      "options": [
+        "화면보호기",
+        "바탕화면",
+        "NAC 재인증",
+        "잠금화면"
+      ],
+      "correctAnswer": "잠금화면",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "713c3143",
+      "title": "DNS 제어 플러그인에서 제어할 수 없는 항목은?",
+      "type": "RADIO",
+      "options": [
+        "자동으로 IP 주소받기 / 자동으로 DNS 서버 주소받기",
+        "자동으로 IP 주소받기 / 다음 DNS 주소 사용",
+        "다음 IP 주소 사용 / 자동으로 DNS 서버 주소 받기",
+        "다음 IP 주소 사용 / 다음 DNS 주소 사용"
+      ],
+      "correctAnswer": "자동으로 IP 주소받기 / 자동으로 DNS 서버 주소받기",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "156d0e2f",
+      "title": "ARP 관리 플러그인에서 Anti ARP Spoofing  정책이 적용된 대상과 ARP List에 알맞은 내용은?",
+      "type": "RADIO",
+      "options": [
+        "MAC 변경금지 / 1.1.1.1 / AA:AA:AA:AA:AA:AA / 동적",
+        "IP 충돌보호 / 1.1.1.3 / CC:CC:CC:CC:CC:CC / 정적",
+        "IP 충돌보호 / 1.1.1.1 / AA:AA:AA:AA:AA:AA / 정적",
+        "MAC 변경금지 / 1.1.1.1 / AA:AA:AA:AA:AA:AA / 정적"
+      ],
+      "correctAnswer": "IP 충돌보호 / 1.1.1.1 / AA:AA:AA:AA:AA:AA / 정적",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "7e6e5ceb",
+      "title": "Malware Detector 플러그인에서 수집정보가 전송되는 서버는?",
+      "type": "RADIO",
+      "options": [
+        "genians.com",
+        "jira.genians.com",
+        "eco.genians.net",
+        "analyze.genians.net"
+      ],
+      "correctAnswer": "eco.genians.net",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "413a0e51",
+      "title": "하드웨어 정보 수집 플러그인에서 수집하는 정보가 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "CPU 정보",
+        "메모리 정보",
+        "PC Type",
+        "모니터 정보"
+      ],
+      "correctAnswer": "모니터 정보",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "1ed92baa",
+      "title": "백신 정보 수집 플러그인에서 제공되는 기업 제품이 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "Ahnlab V3",
+        "하우리 바이로봇",
+        "트렌드마이크로 Maximum Security",
+        "이스트 소프트 알약"
+      ],
+      "correctAnswer": "트렌드마이크로 Maximum Security",
+      "correctAnswers": null
+    },
+    {
+      "questionId": "66c88237",
+      "title": "비밀번호 유효성 검사 플러그인에서 비밀번호 규칙으로 맞는것은?",
+      "type": "RADIO",
+      "options": [
+        "비밀번호는 최소 8자 이상이어야 합니다.",
+        "비밀번호는 반드시 알파벳 대문자를 포함해야 합니다.",
+        "비밀번호는 반드시 알파벳으로 시작해야 합니다.",
+        "비밀번호는 연속된 숫자를 사용하지 않아야 합니다."
+      ],
+      "correctAnswer": "비밀번호는 연속된 숫자를 사용하지 않아야 합니다.",
+      "correctAnswers": null
+    }
+  ],
+  "subjectiveQuestions": [
+    {
+      "questionId": "580d2dfd",
+      "title": "Configuration Mode에서 Terminal / Batch Mode 의 차이점은?",
+      "maxScore": 4,
+      "modelAnswer": "terminal mode : 설정 즉시 적용을 위함. Batch mode :  리부팅 이후 설정 일괄 적용 하기 위함.",
+      "rubric": "",
+      "_matchScore": "100%",
+      "_docxQuestion": "Configuration mode에서 terminal / Batch mode 차이점은?"
+    },
+    {
+      "questionId": "5660ea5c",
+      "title": "CLI Mode 계정 생성시 ID와 Password의 제한 조건에 대해서 설명하시오.",
+      "maxScore": 4,
+      "modelAnswer": "ID : 4~31 길이로 변경 / password : 최소 9길이 이상, 하나 이상의 특수문자, 영문자,숫자포함",
+      "rubric": "",
+      "_matchScore": "80%",
+      "_docxQuestion": "CLI Mode 계정 생성시 ID와 Password 제한 조건에 대해 설명하시오."
+    },
+    {
+      "questionId": "1b660214",
+      "title": "NAC 정책서버 분리구성에 장점과 단점을 서술하시오.",
+      "maxScore": 4,
+      "modelAnswer": "단일 구성과 비교하여 성능 향상이라는 장점이 존재 하지만, 해당 구성 역시 구성된 모듈 중 어느 하나라도 한가지의 장애 발생 시 전체 서비스가 제공 되지 않을 수 있는 단점과 대체 장비 운영까지 오랜 시간이 소요 될 수 있다는 단점이 존재함.",
+      "rubric": "",
+      "_matchScore": "50%",
+      "_docxQuestion": "NAC 정책서버 분리 구성의 장점과 단점에 대해 서술하시오."
+    },
+    {
+      "questionId": "6fcf808c",
+      "title": "네트워크 센서의 bonding 구성에 목적을 서술하시오.",
+      "maxScore": 4,
+      "modelAnswer": "네트워크 센서의 물리적 인터페이스를 여러 개 묶어 하나의 가상 인터페이스로 센서를 구성하는 형태이며 이 구성은 네트워크 센서가 연결된 스위치의 고가용성이나 대역폭 확장에 대응.",
+      "rubric": "",
+      "_matchScore": "100%",
+      "_docxQuestion": "네트워크 센서의 Bonding 구성에 목적을 서술하시오"
+    },
+    {
+      "questionId": "1f1db907",
+      "title": "NAC 5.0 Version 에서 추가된 설정모드는?",
+      "maxScore": 4,
+      "modelAnswer": "Interactive Wizard 모드",
+      "rubric": "",
+      "_matchScore": "67%",
+      "_docxQuestion": "NAC 5.0 Version에서 추가된 설정모드는?"
+    },
+    {
+      "questionId": "68d2d54f",
+      "title": "Mysql Replication 설명에 맞는 옵션값을 나열하세요.",
+      "maxScore": 4,
+      "modelAnswer": "enable, serverid, username, password, masterhost, port",
+      "rubric": "",
+      "_matchScore": "50%",
+      "_docxQuestion": "Mysql Replication 설정 옵션값을 나열하시오"
+    },
+    {
+      "questionId": "4b0827cd",
+      "title": "64bit Windows 운영체제에서 NAC 에이전트 설치 시 기본경로는?",
+      "maxScore": 4,
+      "modelAnswer": "C:\\PROGRAM FILES\\Geni\\Genian",
+      "rubric": "",
+      "_matchScore": "100%",
+      "_docxQuestion": "64bit windows 운영체제에서 NAC 에이전트 설치 시 기본경로는?"
+    },
+    {
+      "questionId": "6ac76bf5",
+      "title": "Windows 운영체제 업데이트 리스트 검색 방법 3가지를 나열하시오.",
+      "maxScore": 4,
+      "modelAnswer": "Microsoft Windows Update, WSUS, Offline Scan File",
+      "rubric": "",
+      "_matchScore": "100%",
+      "_docxQuestion": "windows 운영체제 업데이트 리스트 검색 방법 3가지를 나열하시오."
+    },
+    {
+      "questionId": "66db28e4",
+      "title": "모니터 정보 수집 플러그인에서 수집 관련 데이터는?",
+      "maxScore": 4,
+      "modelAnswer": "EDID(Extended Display Identification Data) : 소스 장치의 디스플레이 릴레이를 위한 출력 값",
+      "rubric": "",
+      "_matchScore": "100%",
+      "_docxQuestion": "모니터 정보 수집 플러그인에서 수집 관련 데이터는?"
+    },
+    {
+      "questionId": "0f9c854b",
+      "title": "NAC Agent 중요 프로세스 항목 4가지를 작성하세요.",
+      "maxScore": 4,
+      "modelAnswer": "Gnupdate. GnStart. GnAgent, GnPlugin",
+      "rubric": "",
+      "_matchScore": "100%",
+      "_docxQuestion": "NAC agent 중요 프로세스 항목 4가지를 작성하세요"
+    }
+  ]
+}

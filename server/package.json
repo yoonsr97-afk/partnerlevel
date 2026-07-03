@@ -1,0 +1,19 @@
+{
+  "name": "partner-eval-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "파트너 평가 자동화 - 신청자 명단 조회 및 시험 발송 메일용 백엔드 (서비스 계정으로 비공개 시트 읽기/쓰기, Gmail로 메일 발송)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "googleapis": "^140.0.0",
+    "jszip": "^3.10.1",
+    "nodemailer": "^6.9.14"
+  }
+}
