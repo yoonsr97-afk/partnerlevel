@@ -1,163 +1,152 @@
 # 파트너 평가 자동화 시스템
 
-관리자가 파트너 대상 평가(시험)를 시행할 때, 출석체크 → 시험 발송 → 응시 확인 → 채점 →
-승인 → 합격자 확인까지의 흐름을 하나의 화면에서 일관되게 처리할 수 있도록 돕는 SPA 웹앱입니다.
+관리자가 파트너 대상 평가(시험)를 시행할 때, 출석체크 → 문제 폼 생성 → 시험 발송 → 응시 확인 → AI 채점 → 승인 → 합격자 확인까지의 흐름을 하나의 화면에서 처리하는 SPA 웹앱입니다.
 
-파트너 신청자 명단(1번 시트)과 시험 결과 기록부(평가현황 시트, NAC만 우선 연동)는 실제 Google
-Sheets와 연동되어 있고, AI 채점 자체(객관식/주관식 점수 산출)는 아직 더미 데이터로 동작을
-시뮬레이션합니다. 응시 결과를 구글 폼에서 직접 읽어오는 연동은 추후 단계에서 진행합니다.
+**NAC / EDR 두 시험을 완전히 분리해서 관리합니다.** 헤더의 NAC/EDR 전환 버튼으로 보고 있는 시험을 바꿀 수 있고, 전 과정의 데이터가 서로 섞이지 않고 독립적으로 유지됩니다.
 
-**NAC / EDR 두 시험을 완전히 분리해서 관리합니다.** 헤더의 NAC/EDR 전환 버튼으로 보고 있는 시험을
-바꿀 수 있고, 신청자 명단부터 출석/시험발송/응시확인/채점/승인/합격자까지 전 과정의 데이터가
-서로 섞이지 않고 독립적으로 유지됩니다 (각자 별도의 신청 스프레드시트를 사용).
+---
 
 ## 프로젝트 구조
 
 ```
-index.html   화면 구조 (헤더, 탭 네비게이션, 7개 탭 패널, 모달/토스트 공통 컴포넌트)
-style.css    전체 스타일 (HP-design-analysis 디자인 토큰 기반, Primary #024ad8)
-app.js       전역 state, 탭별 렌더링 로직, 이벤트 처리, 백엔드 연동 포인트
-README.md    본 문서
-server/      신청자 명단 조회용 백엔드 (서비스 계정으로 비공개 시트를 읽어 app.js에 JSON으로 제공)
+index.html          화면 구조 (헤더, 탭 네비게이션, 8개 탭 패널, 모달/토스트)
+style.css           전체 스타일 (Primary #024ad8)
+app.js              전역 state, 탭별 렌더링 로직, 이벤트 처리, 백엔드 연동
+server/
+  server.js         Express 백엔드 (API 라우터, 세션 관리)
+  auth.js           Google 서비스 계정 인증 헬퍼 (로컬/서버 환경 자동 분기)
+  mailer.js         Gmail SMTP 메일 발송 (port 465 SSL)
+  certificate.js    수료증 docx 생성 + LibreOffice headless PDF 변환
+  examResults.js    평가현황 시트 읽기/쓰기
+  formsGrading.js   구글 폼 응답 읽기 + 객관식 자동 채점
+  examCheck.js      응시 확인 (폼 응답 매칭)
+  formCreation.js   시험 폼 생성/게시/삭제
+  aiGrading.js      Anthropic Claude AI 주관식 채점
+  Dockerfile        Railway 배포용 (LibreOffice 포함)
+  .env              환경변수 (git 제외)
+  service-account.json  구글 서비스 계정 키 (git 제외)
+  templates/        메일 이미지, 수료증 docx, 정답 키 JSON
 ```
 
-화면 전환은 별도 라우팅 없이 탭 버튼 클릭 시 `switchTab()` 함수가 `.tab-panel` 의
-`active` 클래스를 토글하는 방식의 SPA 구조입니다.
+---
 
-## 데이터 흐름
-
-모든 탭은 `app.js`의 `state.partnersByExam[state.examType]` 배열을 공유합니다.
-`state.examType`이 `'NAC'`이면 NAC 데이터를, `'EDR'`이면 EDR 데이터를 가리키는 식으로,
-헤더의 시험 종류 전환 버튼 하나로 7개 탭 전체가 그 시험의 데이터로 바뀝니다. 각 파트너 객체는
-한 행(row)이 다음 순서로 정보를 누적해 나가는 구조입니다.
-
-```
-파트너 목록 → 출석 체크 → 시험 발송 → 응시 확인 → AI 채점 → 승인 관리 → 합격자 확인
-```
-
-- **시험 발송 / 응시 확인**: 출석 처리(`attendance === '출석'`)된 인원만 대상으로 표시됩니다.
-- **AI 채점 / 승인 관리**: 응시 완료(`examStatus === '응시완료'`)된 인원만 표시됩니다.
-- **합격/불합격 확인**: 응시 완료(`examStatus === '응시완료'`) + 승인 완료(`approvalStatus === '승인완료'`)된 인원만 표시되며, 총점 60점 기준으로 합격/불합격 뱃지가 함께 붙습니다. 승인 전에는 노출되지 않습니다.
-- Google Sheets 연동 직후(`handleSheetsSync()`) 명단을 회사명(파트너사) 가나다순으로 한 번 정렬해두기 때문에(`sortByCompany()`), 출석 체크/시험 발송/응시 확인/AI 채점/승인 관리/합격·불합격 확인 등 `getPartners()`를 그대로 표로 그리는 모든 탭에서 같은 회사 소속 인원이 자연스럽게 묶여서 나열됩니다.
-
-따라서 데모를 진행할 때는 ①Google Sheets 연동 → ②출석 체크 → ③시험 발송(이메일) →
-④응시 확인 토글 → ⑤AI 채점 확인 → ⑥승인 처리 → ⑦합격자 확인 순서로 클릭하면
-전체 흐름이 이어집니다.
-
-헤더 우측의 `YYYY년 M월` 배지를 클릭하면 1월~12월 중 조회할 월을 고를 수 있는 드롭다운이
-열립니다(`renderMonthDropdown()`/`selectMonth()`, `app.js`). 월을 바꾸면 `state.selectedMonth`가
-갱신되고, 이미 한 번이라도 연동한 적이 있다면 그 월 기준으로 NAC/EDR 신청자 명단을 자동으로
-다시 불러옵니다(연도는 `state.selectedYear`로 별도 관리되며 현재는 항상 올해 기준입니다).
-
-## 탭별 기능
+## 탭별 기능 (8개)
 
 ### 1. 파트너 목록
-- `Google Sheets 연동` 버튼 클릭 시 스피너 표시 후 NAC/EDR 신청자 명단을 한 번에 불러옵니다 (각각 헤더에서 선택된 월의 신청자만, 기본값은 오늘 날짜 기준 현재 월).
-- 헤더의 NAC/EDR 버튼으로 어느 시험의 명단을 볼지 전환합니다.
-- 컬럼: No. / 이름 / 이메일 / 사명 / 직급 / 신청일
-  - No.는 화면 표시용 순번이라 응시 인원 수를 한눈에 파악할 수 있습니다.
-  - 신청일은 시트의 "타임스탬프" 값에서 연/월/일을 추출해 표시합니다 (`server/server.js`의 `extractDateParts()`). 같은 함수로 추출한 연도가 올해와 다른(작년 이전) 신청 건은 애초에 응답에서 제외됩니다.
+- Google Sheets 연동 버튼으로 NAC/EDR 신청자 명단 조회 (현재 월 기준)
+- 헤더의 NAC/EDR 버튼으로 시험 전환, 월 선택 드롭다운으로 조회 월 변경
 
 ### 2. 출석 체크
-- 전체 파트너 대상, 출석 상태를 `[출석]/[결석]` 토글 버튼으로 변경합니다. (기본값 결석)
-- 상단에 `출석 인원 / 전체 인원` 카운트가 표시됩니다. 컬럼에 No.가 표시되어 인원 수를 바로 파악할 수 있습니다.
-- 토글 시 [updateAttendanceOnSheet()](app.js)가 호출되어 실제 시트 행 배경색도 함께 바뀝니다 (노랑=출석/빨강=결석). 시트 반영이 실패하면 화면도 자동으로 롤백됩니다.
+- `[출석]/[결석]` 토글로 출석 상태 변경 → 실제 시트 행 배경색도 함께 변경 (노랑=출석/빨강=결석)
+- 실패 시 화면 자동 롤백
 
-### 3. 시험 발송
-- 출석 처리된 인원만 발송 대상 테이블에 표시됩니다 (No. 컬럼 포함).
-- 각 행 체크박스로 발송 대상을 선택하고, 헤더 체크박스로 전체 선택/해제할 수 있습니다.
-- 행마다 있는 `이메일 발송` 버튼으로 그 사람에게만 개별 발송하거나, 상단 `선택 발송 (N명)` 버튼으로 체크된 인원 전체에게 한 번에 발송할 수 있습니다 (전체 발송 전 확인 모달이 뜹니다).
-- 메일은 [server/mailer.js](server/mailer.js)가 Gmail SMTP로 실제 발송합니다. 제목/본문은 시험 종류(NAC/EDR)와 현재 연/월에 맞춰 자동 생성되고, `server/templates/배너.png`·`아래.png` 이미지가 본문에 인라인으로 포함됩니다.
-- `[평가시작]` 버튼은 아직 실제 링크가 연결되어 있지 않습니다 (매달 새로 복사되는 구글폼 URL이 정해지면 `server/mailer.js`의 TODO 주석 위치에 연결 예정).
+### 3. 문제 폼 생성
+- 공유 드라이브에서 템플릿 폼을 복사해 해당 월 시험 폼 자동 생성
+- 초급(A/B/C형 월별 자동 순환) / 중급 선택 가능
+- 생성 → 게시 → 삭제 관리
 
-### 4. 응시 확인
-- 시험 발송 대상(출석 인원) 중 응시 상태를 `[응시완료]/[미응시]` 토글로 변경합니다. (기본값 미응시)
-- 상단에 `응시완료 / 전체` 카운트가 표시됩니다.
+### 4. 시험 발송
+- 출석 처리된 인원에게 시험 링크 포함 이메일 발송 (개별/선택 발송)
+- Gmail SMTP (port 465 SSL) 사용, 배너/푸터 이미지 인라인 첨부
 
-### 5. AI 채점
-- 응시완료된 인원에 대해 더미 점수(객관식/주관식/총점)와 `채점완료` 뱃지를 표시합니다.
-- 총점 60점 이상이면 `합격`, 미만이면 `불합격` 뱃지가 함께 표시됩니다.
-- `주관식 상세보기` 클릭 시 문항별로 **정답(모범답안) / 응시자 답변 / AI 채점 근거**가 행 아래에 펼쳐집니다. 정답은 추후 관리자가 `server/templates/`에 올리는 채점 기준 파일에서 가져올 예정이며, 지금은 더미 placeholder가 표시됩니다.
-- 문항마다 **최종 점수를 사람이 직접 수정**할 수 있습니다(AI가 매긴 원래 점수는 `AI 채점: n/총점` 칩으로 항상 같이 보여서 비교 가능). 점수를 AI 원점수와 다르게 수정하면 `수정됨` 뱃지가 붙습니다.
-- 점수를 수정했다면 **점수 수정 메모**에 사유를 남길 수 있습니다(선택 입력).
-- 점수를 수정하면 그 문항의 주관식 점수/총점/합격여부가 즉시 재계산되어 AI 채점·승인 관리·합격불합격 확인 탭에 모두 반영됩니다.
-- **승인 완료된 인원은 점수/메모를 더 이상 수정할 수 없습니다** (한 번 승인되면 결과가 조용히 바뀌는 걸 막기 위함 — 승인 자체가 취소 불가능한 것과 같은 맥락).
+### 5. 응시 확인
+- 구글 폼 응답을 직접 읽어 파트너 명단과 매칭해 응시 여부 확인
+- 이름 + 파트너사명 기준 매칭
 
-### 6. 승인 관리
-- 채점 결과(AI 채점 탭에서 사람이 검토·수정한 최종 점수 기준)를 보고 `승인` 버튼으로 승인 처리합니다. 주관식 상세 검토는 AI 채점 탭에서 이미 끝낸 뒤 여기서는 최종 승인만 합니다.
-- 승인 클릭 시 확인 모달 → 확인 시 승인완료로 상태가 바뀌고 토스트가 표시됩니다.
-- 한 번 승인되면 취소할 수 없습니다(승인 취소 기능 없음). 승인 이후에는 AI 채점 탭에서의 점수 수정도 함께 잠깁니다.
+### 6. AI 채점
+- **객관식**: `server/templates/answer-keys/NAC_A.json` 정답 파일과 응답 비교해 자동 채점
+- **주관식**: Anthropic Claude (`claude-haiku-4-5-20251001`)가 모범답안과 키워드 비교 채점 (0.5점 단위)
+- 주관식 상세보기에서 문항별 AI 근거 확인 및 사람이 점수 직접 수정 가능
+- 승인 완료 후에는 점수 수정 잠김
 
-### 7. 합격/불합격 확인
-- 승인 관리 탭에서 승인 완료된 인원만 표시되고, 각자 합격/불합격 뱃지가 붙습니다. 승인 전에는 응시를 완료했어도 이 탭에 나타나지 않습니다.
-- 컬럼: No. / 이름 / 사명 / 직급 / 총점 / 합격여부 / **수료증**
-  - `수료증` 버튼을 누르면 `server/templates/`의 결과 안내 docx 양식을 기반으로 PDF가 생성되어 바로 다운로드됩니다(`server/certificate.js`).
-  - **문서는 회사(파트너사) 단위로 1개만 생성됩니다.** 같은 회사 소속 응시완료자 전원(합격·불합격 모두)이 한 표 안에 같이 들어가며, 그 회사의 누구 행에서 눌러도 동일한 파일이 내려갑니다 — 사람별로 따로 문서를 만들지 않습니다.
-  - 점수/합격여부는 아직 서버에 저장되지 않는 더미 채점 데이터라, 다운로드 요청 시 프론트엔드가 같은 회사 소속 응시완료자 목록(이름/점수/결과)을 함께 실어 보냅니다.
-  - PDF 변환은 사용자 PC에 설치된 **Microsoft Word를 COM 자동화**로 호출해서 수행합니다(`server/convert-to-pdf.ps1`). 같은 PC에 Word가 설치되어 있어야 동작합니다.
+### 7. 승인 관리
+- 채점 결과 검토 후 승인 처리 (승인 취소 불가)
+- 승인 시 평가현황 시트에 결과 자동 기록
+- 승인된 행에 시트 직접 링크 제공
 
-## 공통 컴포넌트
+### 8. 합격/불합격 확인
+- 승인 완료된 인원만 표시, 총점 60점 기준 합격/불합격
+- 수료증(결과 안내 PDF) 다운로드 — 회사 단위로 1개 생성 (같은 회사 응시자 전원 포함)
 
-- **모달**: `index.html`의 `#modalOverlay` 1개를 모든 탭이 공유합니다.
-  `showModal(message, onConfirm)` / `hideModal()` (`app.js`)로 제어합니다.
-- **토스트**: `#toastContainer`에 동적으로 추가되며, `showToast(message)` (`app.js`)로 호출합니다.
+---
 
-## 추후 백엔드/AI 연동 시 수정 위치 (app.js)
+## 주요 연동 현황
 
-| 기능 | 함수 | 현재 동작 | 연동 시 수정 내용 |
-|---|---|---|---|
-| 파트너 신청자 명단 불러오기 | `fetchFromSheets()` | **연동 완료.** `server/`의 백엔드(`SHEETS_API_BASE_URL`)를 `fetch()`로 호출해 현재 월 신청자(이름/이메일/사명/직급/소속부서/휴대전화/JIRA계정ID/평가항목선택/출석 힌트)를 가져옴 | 구글 폼 응답을 직접 읽어오는 단계까지 연동되면 `generateDummyGrading()` 호출을 제거하고 실제 채점 데이터를 가져오도록 교체 |
-| 시험 링크 발송 | `sendExamLinks(examType, targetPartners)` | **연동 완료.** `server/mailer.js`가 Gmail SMTP로 실제 발송 | `[평가시작]` 버튼에 매달 새로 생기는 구글폼 URL을 연결 (현재는 `server/mailer.js`의 TODO 위치에 링크 없이 텍스트만 표시) |
-| 승인 결과 기록 | `recordApprovalToSheets(partner)` | **연동 완료.** `server/examResults.js`가 결과 시트(평가현황)에 새 행으로 기록 (이미 있으면 중복 기록하지 않음) | EDR용 결과 시트가 정해지면 `RESULT_SHEETS`(`server/examResults.js`)에 EDR 설정만 추가하면 됨 |
-| AI 채점 | `generateDummyGrading()` | `SUBJECTIVE_QUESTIONS` 문항에 무작위 점수를 채워 임시로 반환. 단, 결과 시트에 이미 기록이 있으면 `buildPartnerList()`가 그 점수로 덮어씀 | 구글 폼 응답 연동 후 실제 `objectiveScore`/`subjectiveAnswers`(문항별 답변·AI 채점 근거·점수)를 가져오도록 교체. `subjectiveScore`/`totalScore`는 `subjectiveAnswers` 점수 합으로 자동 계산되므로 별도 수정 불필요 |
-| 수료증(결과 안내 PDF) 생성 | `downloadCompanyCertificate()` | **연동 완료.** `server/certificate.js`가 `server/templates/`의 docx 양식 표를 회사 소속 응시완료자 전원으로 채워 Word COM으로 PDF 변환 후 반환 | 그대로 사용 가능 |
+| 기능 | 상태 | 비고 |
+|------|------|------|
+| 신청자 명단 조회 (NAC/EDR) | 완료 | Google Sheets API |
+| 출석 체크 시트 반영 | 완료 | 행 배경색 변경 |
+| 시험 폼 생성/게시/삭제 | 완료 | Google Forms + Drive API |
+| 이메일 발송 | 완료 | Gmail SMTP 465 (Railway에서는 SMTP 차단으로 Ubuntu 서버 권장) |
+| 응시 확인 | 완료 | Google Forms 응답 직접 읽기 |
+| AI 채점 (객관식) | 완료 | 정답 키 JSON 필요 |
+| AI 채점 (주관식) | 완료 | Anthropic Claude API |
+| 승인 결과 시트 기록 (NAC) | 완료 | 평가현황 시트 |
+| 승인 결과 시트 기록 (EDR) | 미연동 | `.env`에 EDR 시트 ID 추가 시 자동 활성화 |
+| 수료증 PDF 생성 | 완료 | LibreOffice headless (`soffice`) |
+| 중급 시험 폼 템플릿 | 미설정 | `.env`의 `TEMPLATE_FORM_ID_NAC_MID` 입력 필요 |
 
-### Google Sheets 연동 현황
+---
 
-- **1번 시트(월별 신청자 명단, NAC/EDR 각각 별도 스프레드시트)**: 연동 완료. `app.js` 상단의 `SHEETS_API_BASE_URL`, `SHEETS_ACCESS_KEY`를 사용해 [fetchFromSheets(examType)](app.js)가 `server/server.js`의 `/api/partners?examType=NAC|EDR`를 호출합니다.
-  - 원본 스프레드시트(NAC용, EDR용 각각)는 **비공개 상태를 유지**하고, Google Cloud 서비스 계정에 **편집자** 권한으로 공유되어 있습니다. `server/server.js`가 그 서비스 계정 자격증명(`server/service-account.json`, git에는 포함되지 않음)으로 Sheets API를 직접 호출해 데이터를 읽고 씁니다.
-  - 서버는 `EXAM_SHEETS` 설정(`server/server.js`)에서 `examType`에 맞는 스프레드시트 ID/시트명을 골라, 시트의 "평가 월 선택" 컬럼으로 현재 월 신청자만 골라내고, 신청자 행의 배경색(노랑=출석/빨강=결석)을 읽어 `attendanceHint`로 함께 내려줍니다.
-  - **양방향 동기화**: 출석 체크 탭에서 출석/결석을 토글하면 [updateAttendanceOnSheet()](app.js)가 `POST /api/attendance`를 호출해 시트의 실제 행 배경색도 함께 바뀝니다 (`rowIndex`로 행을 식별). 실패하면 화면도 토글 이전 상태로 롤백되고 토스트로 알립니다.
-  - `app.js`와 `server/`의 `key`/`SERVER_ACCESS_KEY` 값이 일치해야 응답을 받을 수 있도록 최소한의 접근 제어를 두었습니다.
-  - (참고: 처음엔 Apps Script 웹앱으로 시도했으나, 사내 Workspace 정책상 "전체 공개" 배포가 막혀 있어 서비스 계정 + 자체 백엔드 방식으로 전환했습니다.)
-- **결과 시트(평가현황, NAC만 우선 연동)**: 연동 완료. [server/examResults.js](server/examResults.js) 참고.
-  - 회사에서 오래 운영해온 실제 결과 기록부(스프레드시트 ID는 `.env`의 `RESULTS_SPREADSHEET_ID_NAC`)로, 한 행에 NAC초급/중급/GPI 결과가 같이 들어있는 구조라 이 앱은 그 중 "초급" 블록(B~Y열)만 읽고 씁니다.
-  - 탭 이름이 `"{연도} 파트너 평가현황(NAC)"` 패턴이라 연도만 코드에서 끼워 넣으면 매년 그대로 동작합니다(`RESULT_SHEETS.NAC.sheetNameForYear`).
-  - **읽기**: `GET /api/partners` 호출 시 서버가 결과 시트도 같이 조회해서, 파트너명+평가자명+평가월이 일치하는 기존 기록이 있으면 그 점수를 `existingResult`로 같이 내려줍니다. `buildPartnerList()`가 이 값으로 점수를 덮어쓰고 `examStatus`/`approvalStatus`를 자동으로 `응시완료`/`승인완료`로 처리합니다(AI 채점 탭의 점수 수정도 같이 잠김).
-  - **쓰기**: 승인 관리 탭에서 `승인` 버튼을 누르면 `POST /api/exam-result`가 호출되어 새 행을 추가합니다. 이메일/평가항목선택/평가월/파트너명/평가자(소속부서)/평가자명/평가자직급/평가자휴대전화/JIRA계정ID/시험유형(월 기준 A→B→C 자동 순환, `getFormTypeForMonth()`)을 채웁니다.
-    - 객관식/주관식 "정답 개수"(원점수) 컬럼은 기존 행들의 점수=원점수×배율 패턴(객관식 ×1.5, 주관식 ×4)을 거꾸로 적용해 점수에서 역산해 채웁니다.
-    - 계정발급/계정갱신 컬럼은 빈 칸으로 둡니다(관리자가 실제 계정을 발급/갱신한 뒤 수동으로 체크하는 항목이라 앱이 알 수 없음).
-    - 휴대전화/JIRA계정ID처럼 숫자로만 이뤄질 수 있는 값은 앞에 작은따옴표를 붙여 강제로 텍스트로 기록합니다(안 그러면 Sheets가 숫자로 인식해 휴대전화 앞자리 0이 사라짐).
-    - 새 행의 B~O열은 왼쪽 정렬, P~Y열(접수~계정갱신)은 가운데 정렬로 서식을 맞춥니다(기존 데이터 행과 동일).
-    - 결과 시트의 총점수/결과 컬럼은 수식(`=S{row}+U{row}`, 합격 판정 IF문)이라 새 행에도 같은 수식을 그대로 복제해 넣어 자동 계산되도록 했습니다.
-    - 직전에 다시 한번 중복 여부를 확인해서, 이미 기록이 있으면 새로 쓰지 않고 기존 값을 그대로 반환합니다.
-- **구글 폼 응답 직접 연동**: 아직 미연동. 연동 전까지는 `generateDummyGrading()`이 채점 탭에 임시 점수를 채웁니다. (EDR 결과 시트도 아직 미연동 - `RESULT_SHEETS`에 EDR 설정을 추가하면 동일한 흐름으로 켜짐)
+## 로그인 / 세션
 
-### 시험 발송 메일
+- 서버 접속 시 로그인 화면 표시 (계정 정보 `.env`에서 관리)
+- 비밀번호는 클라이언트에서 SHA-256 해시 후 전송 (평문 전송 없음)
+- 세션 유효 시간: **30분** (갱신 버튼 또는 세션 연장 팝업으로 연장 가능)
+- 세션 만료 3분 전 경고 팝업 표시, 상단 남은 시간 뱃지 표시
 
-- [server/mailer.js](server/mailer.js)가 `MAIL_USER`/`MAIL_APP_PASSWORD`(Gmail 계정 + 앱 비밀번호)로 Gmail SMTP에 연결해 발송합니다.
-- 본문에 들어가는 이미지는 `server/templates/배너.png`(상단), `server/templates/아래.png`(하단)이며, 인라인 첨부(CID) 방식이라 외부 이미지 호스팅이 필요 없습니다.
-- 받는 사람마다 개별 발송하기 때문에(BCC 아님) 수신자끼리 서로의 메일 주소가 노출되지 않습니다.
+---
 
-### 수료증(정기평가 결과 안내 PDF) 생성
+## 환경변수 (`.env`)
 
-- [server/certificate.js](server/certificate.js)가 `server/templates/`의 docx 양식(표에 회사/이름/종류/점수/결과 컬럼이 있는 결과 안내문)을 읽어, 표의 예시 데이터 행 하나를 "행 템플릿"으로 복제·치환하는 방식으로 실제 응시자 데이터를 채워 넣습니다.
-- **문서는 회사 단위로 1개만 생성됩니다.** 같은 회사 소속 응시완료자 전원(합격·불합격 모두)이 한 표 안에 같이 들어갑니다. 프론트엔드(`app.js`의 `handleDownloadCertificate()`)는 다운로드를 누른 사람과 같은 회사 소속 응시완료자 목록을 모아 `POST /api/certificate`로 보냅니다.
-- docx → PDF 변환은 PC에 설치된 **Microsoft Word를 COM 자동화**로 호출합니다(`server/convert-to-pdf.ps1`을 PowerShell로 실행). 그래서 서버를 띄우는 PC에 Word가 설치되어 있어야 하고, LibreOffice 등 별도 변환 프로그램 설치는 필요 없습니다.
-- 점수/합불 데이터는 아직 서버에 저장되지 않으므로(더미 채점), 다운로드 요청 시점에 프론트엔드가 보내주는 값을 그대로 문서에 반영합니다. 응시 결과 시트 연동 후에도 같은 흐름을 그대로 쓸 수 있습니다.
+```env
+PORT=4000
+
+# 신청자 명단 시트
+SPREADSHEET_ID_NAC=...
+SHEET_NAME_NAC=설문지 응답 시트1
+SPREADSHEET_ID_EDR=...
+SHEET_NAME_EDR=설문지 응답 시트1
+
+# 서비스 계정 (로컬: 파일 경로, 서버: SERVICE_ACCOUNT_JSON 환경변수 사용)
+SERVICE_ACCOUNT_KEY_PATH=./service-account.json
+
+# API 접근 키 (레거시 호환, 세션 토큰으로 대체됨)
+SERVER_ACCESS_KEY=...
+
+# 관리자 계정 (비밀번호는 SHA-256 해시)
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD_HASH=...
+
+# Gmail 발송 계정
+MAIL_USER=...@gmail.com
+MAIL_APP_PASSWORD=...
+
+# 평가현황 시트
+RESULTS_SPREADSHEET_ID_NAC=...
+
+# Anthropic Claude AI 채점
+ANTHROPIC_API_KEY=...
+
+# 시험 폼 템플릿 ID
+TEMPLATE_FORM_ID_NAC_A=...
+TEMPLATE_FORM_ID_NAC_B=...
+TEMPLATE_FORM_ID_NAC_C=...
+TEMPLATE_FORM_ID_NAC_MID=
+
+# 공유 드라이브 문제 자료 폴더
+EXAM_FORMS_ROOT_FOLDER=80.문제자료(2020~)
+EXAM_FORMS_ROOT_FOLDER_ID=...
+
+# CORS 허용 도메인 (쉼표 구분, 미설정 시 전체 허용)
+ALLOWED_ORIGINS=
+```
+
+---
 
 ## 실행 방법
 
-### 프론트엔드
-별도 빌드 과정이 없습니다. `index.html`을 브라우저로 열면 동작합니다 (단, 1번 시트 연동/메일 발송을 쓰려면 아래 백엔드가 먼저 실행 중이어야 합니다).
-
-### 백엔드 (`server/`)
-1. [Node.js](https://nodejs.org) LTS 버전 설치
-2. `server/.env` 파일에 실제 값 채우기 (`SPREADSHEET_ID_NAC`, `SPREADSHEET_ID_EDR`, `SERVER_ACCESS_KEY`, `MAIL_USER`, `MAIL_APP_PASSWORD`, `RESULTS_SPREADSHEET_ID_NAC` 등)
-3. Google Cloud에서 발급받은 서비스 계정 키 파일을 `server/service-account.json`으로 저장 (NAC/EDR 신청자 스프레드시트, 결과 시트(평가현황) 모두 그 서비스 계정을 편집자로 공유해둬야 함 — 출석 토글/결과 기록 시 시트를 직접 변경하기 때문)
-4. `server/templates/`에 메일 본문 이미지(`배너.png`, `아래.png`)와 수료증 양식 docx가 있는지 확인
-5. 수료증 PDF 생성을 쓰려면 서버를 띄우는 PC에 **Microsoft Word**가 설치되어 있어야 함 (Word COM 자동화로 docx → PDF 변환)
-6. 아래 명령 실행
+### 로컬 (Windows/Mac)
 
 ```bash
 cd server
@@ -165,6 +154,56 @@ npm install
 npm start
 ```
 
-7. `파트너 평가 자동화 서버 실행 중: http://localhost:4000` 메시지가 보이면 정상 동작 중인 것이며, 이 상태에서 `index.html`의 "Google Sheets 연동" 버튼이 동작합니다.
+`index.html`을 브라우저로 열면 됩니다 (백엔드가 먼저 실행 중이어야 함).
 
-추후 우분투 서버로 이전 시: `server/` 폴더를 그대로 옮기고 동일하게 `npm install && npm start`(또는 `pm2` 등으로 상시 실행) 한 뒤, `app.js`의 `SHEETS_API_BASE_URL`만 해당 서버 주소로 변경하면 됩니다.
+> **PDF 변환**: LibreOffice가 설치되어 있어야 합니다.  
+> Windows: [libreoffice.org](https://www.libreoffice.org) 설치 후 `soffice` PATH 등록
+
+### Ubuntu 서버
+
+```bash
+# 의존성 설치
+sudo apt install -y nodejs npm libreoffice fonts-nanum fonts-nanum-extra
+
+# 레포 클론
+git clone https://github.com/yoonsr97-afk/partnerlevel.git
+cd partnerlevel/server
+npm install
+
+# 환경파일 복사 (.env, service-account.json)
+# scp로 로컬에서 전송
+
+# PM2로 상시 실행
+sudo npm install -g pm2
+pm2 start server.js
+pm2 save && pm2 startup
+```
+
+### Railway (클라우드)
+
+- GitHub 레포 연결, Root Directory: `server`
+- `Dockerfile` 자동 감지 → LibreOffice 포함 빌드
+- Variables 탭에서 `.env` 내용 입력 (단, `SERVICE_ACCOUNT_JSON`에 `service-account.json` 전체 내용 붙여넣기)
+- 프론트엔드: GitHub Pages (`main` 브랜치, root 디렉토리)
+
+> **Railway SMTP 제한**: Railway에서는 SMTP 포트(587/465)가 차단되어 이메일 발송이 안 됩니다. 이메일 발송이 필요하면 Ubuntu 서버 사용을 권장합니다.
+
+---
+
+## 배포 현황 (태그)
+
+| 태그 | 설명 |
+|------|------|
+| `v1-railway` | Railway 백엔드 + GitHub Pages 프론트 구성 기준 스냅샷 |
+
+---
+
+## 데이터 흐름
+
+```
+Google Sheets 연동
+       ↓
+파트너 목록 → 출석 체크 → 문제 폼 생성 → 시험 발송 → 응시 확인 → AI 채점 → 승인 관리 → 합격/불합격 확인
+```
+
+모든 탭은 `state.partnersByExam[state.examType]` 배열을 공유합니다.
