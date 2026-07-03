@@ -213,11 +213,7 @@ async function createExamForm(year, month, level = '초급') {
  * - isPublished: true → 응답자 링크 접근 가능 / isAcceptingResponses: true → 응답 수락
  * ========================================================================= */
 async function publishExamForm(formId) {
-  const auth = new google.auth.GoogleAuth({
-    keyFile: getKeyFilePath(),
-    scopes: ['https://www.googleapis.com/auth/forms.body'],
-  });
-  const authClient = await auth.getClient();
+  const authClient = getAuthClient(['https://www.googleapis.com/auth/forms.body']);
   const { token } = await authClient.getAccessToken();
 
   const res = await fetch(
