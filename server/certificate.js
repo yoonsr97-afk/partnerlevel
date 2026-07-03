@@ -15,7 +15,6 @@ const { execFile } = require('child_process');
 const JSZip = require('jszip');
 
 const TEMPLATE_PATH = path.join(__dirname, 'templates', '2026년_05월_정기평가_결과안내_글로웰시스템.docx');
-const CONVERT_SCRIPT_PATH = path.join(__dirname, 'convert-to-pdf.ps1');
 
 function escapeXml(str) {
   return String(str)
@@ -89,11 +88,16 @@ async function buildResultDocxBuffer({ company, examType, year, month, members }
 
 function convertDocxToPdf(docxPath, pdfPath) {
   return new Promise((resolve, reject) => {
-    execFile('powershell.exe', [
-      '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
-      '-File', CONVERT_SCRIPT_PATH, docxPath, pdfPath,
-    ], { windowsHide: true }, (err, stdout, stderr) => {
+    // LibreOffice headless: Ubuntu는 soffice, Windows에 LibreOffice 설치 시에도 동작
+    const outDir = path.dirname(docxPath);
+    execFile('soffice', [
+      '--headless',
+      '--convert-to', 'pdf',
+      '--outdir', outDir,
+      docxPath,
+    ], (err, stdout, stderr) => {
       if (err) return reject(new Error(stderr || err.message));
+      // LibreOffice는 입력파일명 기반으로 PDF 생성 → pdfPath와 동일하므로 그대로 사용
       resolve();
     });
   });
