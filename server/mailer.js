@@ -10,8 +10,13 @@ const BOTTOM_IMAGE_PATH = path.join(__dirname, 'templates', '아래.png');
 
 function getTransporter() {
   return nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
     auth: { user: MAIL_USER, pass: MAIL_APP_PASSWORD },
+    connectionTimeout: 10000,  // 연결 타임아웃 10초
+    greetingTimeout: 10000,
+    socketTimeout: 30000,
   });
 }
 
