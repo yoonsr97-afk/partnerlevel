@@ -199,7 +199,7 @@ app.use(cors({
 app.use(express.json());
 
 // 임시 진단 엔드포인트 - 배포 확인 후 삭제
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
   const hasJson = !!process.env.SERVICE_ACCOUNT_JSON;
   let parseOk = false;
   let parseError = null;
@@ -207,7 +207,22 @@ app.get('/api/health', (req, res) => {
     try { JSON.parse(process.env.SERVICE_ACCOUNT_JSON); parseOk = true; }
     catch (e) { parseError = e.message; }
   }
-  res.json({ ok: true, hasServiceAccountJson: hasJson, jsonParseOk: parseOk, parseError });
+
+  // Google API 네트워크 연결 테스트
+  let googleReachable = false;
+  let googleError = null;
+  try {
+    const { google } = require('googleapis');
+    const { getAuthConfig } = require('./auth');
+    const auth = new google.auth.GoogleAuth(getAuthConfig(['https://www.googleapis.com/auth/spreadsheets']));
+    const client = await auth.getClient();
+    await client.getAccessToken();
+    googleReachable = true;
+  } catch (e) {
+    googleError = e.message;
+  }
+
+  res.json({ ok: true, hasServiceAccountJson: hasJson, jsonParseOk: parseOk, parseError, googleReachable, googleError });
 });
 
 // 로그인 - 클라이언트에서 SHA-256 해시된 비밀번호를 받아 검증 후 세션 토큰 반환
