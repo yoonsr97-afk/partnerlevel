@@ -198,6 +198,18 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// 임시 진단 엔드포인트 - 배포 확인 후 삭제
+app.get('/api/health', (req, res) => {
+  const hasJson = !!process.env.SERVICE_ACCOUNT_JSON;
+  let parseOk = false;
+  let parseError = null;
+  if (hasJson) {
+    try { JSON.parse(process.env.SERVICE_ACCOUNT_JSON); parseOk = true; }
+    catch (e) { parseError = e.message; }
+  }
+  res.json({ ok: true, hasServiceAccountJson: hasJson, jsonParseOk: parseOk, parseError });
+});
+
 // 로그인 - 클라이언트에서 SHA-256 해시된 비밀번호를 받아 검증 후 세션 토큰 반환
 app.post('/api/login', (req, res) => {
   const { username, passwordHash } = req.body || {};
