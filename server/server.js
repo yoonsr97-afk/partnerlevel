@@ -351,10 +351,16 @@ app.post('/api/send-exam-emails', async (req, res) => {
     return res.status(400).json({ error: 'recipients 배열이 필요합니다.' });
   }
 
-  // 공유 드라이브에서 해당 월 폼 URL 자동 조회 (실패해도 링크 없이 발송 진행)
+  // 공유 드라이브에서 해당 월 폼 URL 자동 조회 (폼이 아직 없으면 링크 없이 발송 진행,
+  // 폼은 있는데 미게시 상태면 Drive 권한에 막히는 깨진 링크가 나갈 수 있으므로 발송을 막는다)
   let formUrl = '';
   try {
     const status = await getExamFormStatus(year, month, level);
+    if (status.form && !status.form.published) {
+      return res.status(409).json({
+        error: `${year}년 ${month}월 ${level} 폼이 아직 게시되지 않았습니다. 먼저 게시한 뒤 발송해주세요.`,
+      });
+    }
     formUrl = status.form?.respondentUrl || '';
   } catch (e) {
     console.warn('시험 폼 URL 조회 실패 (링크 없이 발송):', e.message);
