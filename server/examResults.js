@@ -15,8 +15,16 @@ const { getAuthClient } = require('./auth');
 const RESULT_SHEETS = {
   NAC: {
     spreadsheetId: process.env.RESULTS_SPREADSHEET_ID_NAC,
-    // 탭 이름이 "{연도} 파트너 평가현황(NAC)" 패턴이라 연도만 끼워 넣으면 매년 그대로 동작한다
-    sheetNameForYear: (year) => `${year} 파트너 평가현황(NAC)`,
+    label: 'NAC 초급',
+    // 탭 이름을 고정 문자열로 만들어 쓰다가, 2026년부터 NAC 탭이 초급/중급으로 분리되면서
+    // "2026 파트너 평가현황(NAC)"이 사라져 승인이 통째로 실패했다(400 Unable to parse range).
+    // 그래서 이름을 만들어 던지는 대신, 실제 탭 목록에서 이 패턴에 맞는 탭을 찾아 쓴다.
+    //   2025 -> "2025 파트너 평가현황(NAC)"
+    //   2026 -> "2026 파트너 평가현황(NAC 초급)"
+    // 이 앱은 초급만 처리하므로 "중급" 탭은 패턴에서 의도적으로 제외한다.
+    sheetNamePattern: (year) => new RegExp(`^${year}\\s*파트너\\s*평가현황\\s*\\(\\s*NAC(\\s*초급)?\\s*\\)$`),
+    // 탭을 못 찾았을 때 사용자에게 보여줄 예시 이름
+    sheetNameExample: (year) => `${year} 파트너 평가현황(NAC 초급)`,
   },
 };
 
@@ -72,10 +80,41 @@ async function getSheetGridId(spreadsheetId, sheetName) {
   return target.properties.sheetId;
 }
 
+/**
+ * 결과 시트에서 해당 연도의 탭 이름을 찾는다.
+ *
+ * 없는 탭 이름을 Sheets API에 그대로 넘기면 "Unable to parse range: '...'"라는,
+ * 원인을 짐작하기 어려운 400이 돌아온다. 여기서 먼저 탭 목록을 조회해 맞춰보고
+ * 못 찾으면 무엇을 확인해야 하는지 알려주는 메시지로 바꿔 던진다.
+ * 던지는 에러에는 code='SHEET_TAB_NOT_FOUND'를 달아, 호출부가 서버 장애(500)가 아닌
+ * 설정 문제(400)로 구분해 응답할 수 있게 한다.
+ */
+async function resolveSheetName(resultSheetConfig, year) {
+  const sheets = await getSheetsClient();
+  const result = await sheets.spreadsheets.get({
+    spreadsheetId: resultSheetConfig.spreadsheetId,
+    fields: 'sheets.properties.title',
+  });
+  const titles = result.data.sheets.map((s) => s.properties.title);
+
+  const pattern = resultSheetConfig.sheetNamePattern(year);
+  const matched = titles.find((title) => pattern.test(title.trim()));
+  if (matched) return matched;
+
+  const label = resultSheetConfig.label || '결과';
+  const err = new Error(
+    `${year}년 ${label} 결과 탭을 찾을 수 없습니다. `
+    + `결과 시트에 "${resultSheetConfig.sheetNameExample(year)}" 형식의 탭이 있는지 확인해 주세요. `
+    + `(현재 탭 목록: ${titles.join(', ')})`
+  );
+  err.code = 'SHEET_TAB_NOT_FOUND';
+  throw err;
+}
+
 // 결과 시트 전체를 읽어온다 (행 매칭/다음 빈 행 탐색에 공용으로 쓴다)
 async function fetchResultSheetRows(resultSheetConfig, year) {
   const sheets = await getSheetsClient();
-  const sheetName = resultSheetConfig.sheetNameForYear(year);
+  const sheetName = await resolveSheetName(resultSheetConfig, year);
   const quotedSheetName = `'${sheetName.replace(/'/g, "''")}'`;
 
   const result = await sheets.spreadsheets.get({
@@ -104,7 +143,7 @@ function getCellValue(row, colIndex) {
 
 // 파트너명+평가자명+평가월로 기존 기록을 찾는다.
 // 연도는 별도로 비교하지 않는다 - 이 시트 자체가 연도별로 탭이 나뉘어 있어서
-// (sheetNameForYear(year)로 이미 그 해의 탭만 골라 읽기 때문에) 탭 선택이 곧 연도 필터다.
+// (resolveSheetName(year)로 이미 그 해의 탭만 골라 읽기 때문에) 탭 선택이 곧 연도 필터다.
 // 실제 데이터를 까보니 타임스탬프가 비어있는 행이 많아(수동 입력/이관된 과거 행 등),
 // 타임스탬프 기준 연도 교차검증을 하면 그런 행들을 못 찾는 문제가 있었다.
 function findExistingResult(sheetRows, { company, name, month }) {
@@ -215,11 +254,12 @@ async function appendResultRow(resultSheetConfig, year, data) {
     },
   });
 
-  return { row: targetRow, formType, spreadsheetId: resultSheetConfig.spreadsheetId, sheetGid: gridId };
+  return { row: targetRow, formType, spreadsheetId: resultSheetConfig.spreadsheetId, sheetGid: gridId, sheetName };
 }
 
 module.exports = {
   RESULT_SHEETS,
+  resolveSheetName,
   fetchResultSheetRows,
   findExistingResult,
   appendResultRow,

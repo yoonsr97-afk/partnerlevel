@@ -433,9 +433,13 @@ app.post('/api/exam-result', async (req, res) => {
       email, company, name, department, position, phone, jiraId, itemSelection,
       month, objectiveScore, objectiveCorrectCount: objectiveCorrectCount ?? null, subjectiveScore,
     });
-    res.json({ success: true, ...written, sheetName: resultSheetConfig.sheetNameForYear(year) });
+    res.json({ success: true, ...written });
   } catch (err) {
     console.error(err);
+    // 결과 탭을 못 찾은 건 서버 장애가 아니라 시트 설정 문제라, 원인이 드러나는 400으로 구분해 내려준다
+    if (err.code === 'SHEET_TAB_NOT_FOUND') {
+      return res.status(400).json({ error: err.message, code: err.code });
+    }
     res.status(500).json({ error: err.message });
   }
 });
