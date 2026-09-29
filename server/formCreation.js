@@ -74,8 +74,11 @@ const EXAM_FORM_SPECS = {
   },
 };
 
+// examType을 빼먹으면 조용히 NAC으로 넘어가 엉뚱한 시험의 폼을 집어오기 때문에
+// (EDR 안내 메일에 NAC 시험지 링크가 실려 나간 적이 있다) 기본값 없이 바로 실패시킨다.
 function getExamFormSpec(examType) {
-  const spec = EXAM_FORM_SPECS[(examType || 'NAC').toUpperCase()];
+  if (!examType) throw new Error('examType이 지정되지 않았습니다. (NAC 또는 EDR)');
+  const spec = EXAM_FORM_SPECS[String(examType).toUpperCase()];
   if (!spec) throw new Error(`지원하지 않는 examType: ${examType}`);
   return spec;
 }
@@ -149,7 +152,7 @@ async function findExistingMonthForm(drive, folderId, year, month, level, examTy
 /* =========================================================================
  * 상태 조회: 해당 월 폼 존재 여부 + 게시 여부
  * ========================================================================= */
-async function getExamFormStatus(year, month, level = '초급', examType = 'NAC') {
+async function getExamFormStatus(year, month, level = '초급', examType) {
   const drive = await getDriveClient();
   const spec = getExamFormSpec(examType);
   const formType = spec.formTypeChar(month, level); // NAC: A/B/C/MID, EDR: A 고정

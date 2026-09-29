@@ -29,6 +29,11 @@ function extractTextAnswer(response, questionId) {
   return answers?.length > 0 ? answers[0].value.trim() : null;
 }
 
+// 사명을 묻는 문항 제목이 폼마다 다르다 - NAC 폼은 "파트너명", EDR 폼은 "회사"를 쓴다.
+// 못 알아보면 사명이 null이 되어 "이름만 일치" 매칭으로 떨어지고, 동명이인이 있으면 엉뚱한
+// 사람을 응시 처리할 수 있어서 둘 다 인식한다.
+const COMPANY_TITLES = new Set(['파트너명', '회사', '회사명', '소속']);
+
 // 폼 구조에서 이름·사명 문항 ID를 탐색한다
 async function getRespondentFieldIds(forms, formId) {
   const res = await forms.forms.get({ formId });
@@ -44,8 +49,10 @@ async function getRespondentFieldIds(forms, formId) {
     const title = (item.title || '').trim();
 
     if (title === '이름') nameQId = q.questionId;
-    else if (title === '파트너명') companyQId = q.questionId;
-    else if (title.startsWith('파트너명') && title.includes('직접')) companyAltQId = q.questionId;
+    else if (COMPANY_TITLES.has(title)) {
+      // 여러 개가 있으면 첫 번째를 사명으로 삼는다
+      if (!companyQId) companyQId = q.questionId;
+    } else if (title.startsWith('파트너명') && title.includes('직접')) companyAltQId = q.questionId;
   }
 
   return { nameQId, companyQId, companyAltQId };

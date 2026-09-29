@@ -52,7 +52,7 @@ function extractFormId(formUrl) {
  *   NAC 중급: "중급 평가문제_260701_2026년 7월"
  *   EDR 초급: "EDR 초급 평가문제_A안_20260624_6월"
  * ========================================================================= */
-async function findExamFormInDrive(year, month, level = '초급', examType = 'NAC') {
+async function findExamFormInDrive(year, month, level = '초급', examType) {
   const spec = getExamFormSpec(examType);
   const formType = spec.formTypeChar(month, level);
 
