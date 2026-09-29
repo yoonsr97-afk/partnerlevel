@@ -3,7 +3,7 @@
   "formType": "A",
   "formId": "1Lt-BS1LVkJwyz2xu4QPe2QsIh-9qr87BvFAUHl_dP0k",
   "pointsPerObjective": 1.5,
-  "nameQuestionId": null,
+  "nameQuestionId": "5273df23",
   "_note": [
     "객관식 RADIO: correctAnswer 에 정답 선택지 텍스트를 그대로 입력",
     "객관식 CHECKBOX: correctAnswers 배열에 정답 선택지 텍스트들을 입력",

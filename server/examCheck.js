@@ -34,6 +34,10 @@ function extractTextAnswer(response, questionId) {
 // 사람을 응시 처리할 수 있어서 둘 다 인식한다.
 const COMPANY_TITLES = new Set(['파트너명', '회사', '회사명', '소속']);
 
+// 사명 드롭다운의 마지막 선택지는 "목록에 없음"을 뜻한다 - 이걸 고르면 바로 아래 직접입력 칸에 적는다.
+// 그대로 두면 사명이 "하단작성"이 되어 명단과 매칭되지 않는다.
+const COMPANY_PLACEHOLDER_VALUES = new Set(['하단작성', '기타', '직접입력']);
+
 // 폼 구조에서 이름·사명 문항 ID를 탐색한다
 async function getRespondentFieldIds(forms, formId) {
   const res = await forms.forms.get({ formId });
@@ -48,14 +52,24 @@ async function getRespondentFieldIds(forms, formId) {
     if (!q) continue;
     const title = (item.title || '').trim();
 
-    if (title === '이름') nameQId = q.questionId;
-    else if (COMPANY_TITLES.has(title)) {
-      // 여러 개가 있으면 첫 번째를 사명으로 삼는다
+    if (title === '이름') {
+      nameQId = q.questionId;
+    } else if (COMPANY_TITLES.has(title) || (title.startsWith('파트너명') && title.includes('직접'))) {
+      // NAC/GPI 폼은 사명 문항이 "파트너명" 두 개로 같은 제목을 쓴다(드롭다운 + 직접입력).
+      // 먼저 나오는 쪽이 드롭다운, 그 다음이 직접입력 칸이다.
       if (!companyQId) companyQId = q.questionId;
-    } else if (title.startsWith('파트너명') && title.includes('직접')) companyAltQId = q.questionId;
+      else if (!companyAltQId) companyAltQId = q.questionId;
+    }
   }
 
   return { nameQId, companyQId, companyAltQId };
+}
+
+// 드롭다운 값이 비었거나 "하단작성" 같은 안내값이면 직접입력 칸의 값을 쓴다
+function resolveCompany(response, companyQId, companyAltQId) {
+  const picked = extractTextAnswer(response, companyQId);
+  if (picked && !COMPANY_PLACEHOLDER_VALUES.has(picked)) return picked;
+  return extractTextAnswer(response, companyAltQId) || picked || null;
 }
 
 // 폼 응답 전체 읽기 (페이지네이션 처리)
@@ -93,7 +107,7 @@ async function getExamResponses(formId) {
   const respondents = responses
     .map((r) => ({
       name: extractTextAnswer(r, nameQId),
-      company: extractTextAnswer(r, companyQId) || extractTextAnswer(r, companyAltQId) || null,
+      company: resolveCompany(r, companyQId, companyAltQId),
       email: r.respondentEmail || null,
     }))
     // 이름도 이메일도 없으면 누구인지 알 수 없는 응답이다.
