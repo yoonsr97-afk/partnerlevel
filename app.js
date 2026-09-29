@@ -1718,24 +1718,26 @@ function renderDashboardTab() {
     : `<p class="dash-notice">신청자 전원의 결과가 평가현황 시트에 기록되어 있습니다.</p>`;
 
   container.innerHTML = `
-    <div class="dash-head">
-      <span class="dash-period">${state.selectedYear}년 ${state.selectedMonth}월</span>
-      ${notice}
+    <div class="dash-body">
+      <div class="dash-head">
+        <span class="dash-period">${state.selectedYear}년 ${state.selectedMonth}월</span>
+        ${notice}
+      </div>
+      <table class="data-table dash-table">
+        <thead>
+          <tr>
+            <th scope="col">시험</th>
+            <th scope="col">신청</th>
+            <th scope="col">출석</th>
+            <th scope="col">결과 기록</th>
+            <th scope="col">미기록</th>
+            <th scope="col">합격</th>
+            <th scope="col">불합격</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
     </div>
-    <table class="data-table dash-table">
-      <thead>
-        <tr>
-          <th scope="col">시험</th>
-          <th scope="col">신청</th>
-          <th scope="col">출석</th>
-          <th scope="col">결과 기록</th>
-          <th scope="col">미기록</th>
-          <th scope="col">합격</th>
-          <th scope="col">불합격</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
   `;
 }
 
