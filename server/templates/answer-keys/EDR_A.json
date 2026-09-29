@@ -1,0 +1,396 @@
+{
+  "examType": "EDR",
+  "formType": "A",
+  "formId": "19qFic-boJ3EMe2gIB_e9vv102Ogpl4zl8EBczB_ThIk",
+  "_scoring": {
+    "objective": {
+      "count": 22,
+      "total": 60,
+      "breakdown": "2점 x 6문항 = 12점, 3점 x 16문항 = 48점 (폼의 퀴즈 배점에서 자동 추출)"
+    },
+    "subjective": {
+      "count": 8,
+      "total": 40,
+      "breakdown": "5점 x 8문항 (서술형 2, 단답형 6)"
+    },
+    "passingScore": 60
+  },
+  "pointsPerObjective": 3,
+  "nameQuestionId": "5d352dd8",
+  "_note": [
+    "EDR 초급평가 A형 정답 파일. 객관식 22문항은 시험 폼의 퀴즈 정답/배점에서 자동 추출되었고, 주관식 8문항은 답안지 기준으로 입력했다.",
+    "객관식 RADIO: correctAnswer 에 정답 선택지 텍스트를 그대로 입력",
+    "객관식 CHECKBOX: correctAnswers 배열에 정답 선택지 텍스트들을 입력",
+    "객관식 배점이 문항마다 다르면 해당 문항에 \"points\": 2 처럼 직접 지정 (없으면 pointsPerObjective 적용)",
+    "주관식: modelAnswer 와 rubric(채점기준) 입력, maxScore 수정 가능",
+    "폼이 바뀌면 POST /api/generate-answer-template (examType=EDR, formType=A)로 재생성하면 된다 - 여기 입력된 답안은 문항 제목이 같으면 보존된다."
+  ],
+  "objectiveQuestions": [
+    {
+      "questionId": "01adbfbc",
+      "title": "1. EDR 제품 Serial 접속 시 baud rate는?",
+      "type": "RADIO",
+      "options": [
+        "4800",
+        "9600",
+        "57600",
+        "115200"
+      ],
+      "correctAnswer": "115200",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "64390c52",
+      "title": "2. 다음 장비 구성 중 잘못된 구성 방법은?",
+      "type": "RADIO",
+      "options": [
+        "HOT - HOT",
+        "HOT - WARM",
+        "WARM - WARM",
+        "HOT"
+      ],
+      "correctAnswer": "WARM - WARM",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "40e89291",
+      "title": "3. config중 단일구성에서 log-server shard의 default 갯수는?",
+      "type": "RADIO",
+      "options": [
+        "1개",
+        "2개",
+        "3개",
+        "4개"
+      ],
+      "correctAnswer": "1개",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "35d915f8",
+      "title": "4. ES 서버 장비가 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "ES50_R1",
+        "ES30_R2",
+        "C50",
+        "ES50"
+      ],
+      "correctAnswer": "C50",
+      "correctAnswers": null,
+      "points": 3
+    },
+    {
+      "questionId": "099e523e",
+      "title": "5. 다음 중 EDR 라이선스 모듈이 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "ANTIMALWARE",
+        "EMODULE",
+        "ANTIRANSOM",
+        "A3S"
+      ],
+      "correctAnswer": "A3S",
+      "correctAnswers": null,
+      "points": 3
+    },
+    {
+      "questionId": "5480654b",
+      "title": "6. EDR의 약자가 의미하는 것은?",
+      "type": "RADIO",
+      "options": [
+        "Endpoint Detective & Response",
+        "Endpoint Detection & Respond",
+        "Endpoint Detection & Response",
+        "Endpoint Detective & Repository"
+      ],
+      "correctAnswer": "Endpoint Detection & Response",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "65ee9336",
+      "title": "7. EDR에 대한 설명으로 틀린 것은?",
+      "type": "RADIO",
+      "options": [
+        "OS kernel 에서 동작하며, 파일, 모듈, 레지스트리, 네트워크, 프로세스의 정보를 수집한다.",
+        "위협 탐지 시 파일 삭제(격리), 네트워크 차단, 사용자 알람 등의 대응을 할 수 있다.",
+        "NAC Agent 의 플러그인 형태로 제공되 NAC 고객사가 아니면 적용이 어렵다.",
+        "agent 에서 수집한 로그를 서버로 전송, 서버에서 분석하기 때문에 사용자 PC 에 부담이 적다."
+      ],
+      "correctAnswer": "NAC Agent 의 플러그인 형태로 제공되 NAC 고객사가 아니면 적용이 어렵다.",
+      "correctAnswers": null,
+      "points": 3
+    },
+    {
+      "questionId": "3f456152",
+      "title": "8. Agent 설치 후의 동작 설명 중 틀린 것은?",
+      "type": "RADIO",
+      "options": [
+        "Agent 에서 수집한 이벤트는 임시로 PC 내의 DB에 저장하며, 이벤트 전송 후 삭제",
+        "Off-line 에서는 전송하지 않고 PC 내 DB 형태로 저장",
+        "keep alive 최초 한번 전송 (UDP 3880)",
+        "API 를 이용하여 엔드포인트 등록 후 정책 수신 (TCP 443)"
+      ],
+      "correctAnswer": "keep alive 최초 한번 전송 (UDP 3880)",
+      "correctAnswers": null,
+      "points": 3
+    },
+    {
+      "questionId": "5ddc6361",
+      "title": "9. 에이전트에서 Default로 수집하지 않는 이벤트는?",
+      "type": "RADIO",
+      "options": [
+        "Threat",
+        "Endpoint",
+        "systeminfo",
+        "WindowsEvent"
+      ],
+      "correctAnswer": "WindowsEvent",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "3618512f",
+      "title": "10. 위협을 탐지 하는 방식이 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "사용자정의 IOC",
+        "수집기 SET",
+        "YARA Rule",
+        "XBA Rule"
+      ],
+      "correctAnswer": "수집기 SET",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "7bf89f84",
+      "title": "11. 다음 중 HOT-WARM 아키텍쳐 사용 시 endpoint2 인덱스를 총 90일 보관하는 방법 중 옳은 것은?",
+      "type": "RADIO",
+      "options": [
+        "endpoint2 인덱스 유지 개수 : Default",
+        "hot 노드 보관 기관(일별) : 90일 + endpoint2 인덱스 유지 개수 : 30일",
+        "hot 노드 보관 기관(일별) : 30일 + endpoint2 인덱스 유지 개수 : 90일",
+        "hot 노드 보관 기관(일별) : 45일 + endpoint2 인덱스 유지 개수 : 45일"
+      ],
+      "correctAnswer": "hot 노드 보관 기관(일별) : 30일 + endpoint2 인덱스 유지 개수 : 90일",
+      "correctAnswers": null,
+      "points": 3
+    },
+    {
+      "questionId": "51265866",
+      "title": "12. 1,500노드 이하의 PC를 지원하기 위한 EDR 최적의 구성 방법은?",
+      "type": "RADIO",
+      "options": [
+        "ES30_R2",
+        "ES50_R2",
+        "ES30_R2 + ES30_R2",
+        "ES50_R2 + ES30_R2"
+      ],
+      "correctAnswer": "ES30_R2",
+      "correctAnswers": null,
+      "points": 3
+    },
+    {
+      "questionId": "100a1454",
+      "title": "13. 다음 중 EDR에서 사용하는 포트 용도로 잘못된 것은?",
+      "type": "RADIO",
+      "options": [
+        "3876 : 서버내 정책 수집 포트",
+        "3880 : Heartbeat 전송(keepalive)",
+        "8443 : 관리자 웹콘솔 접속",
+        "3910 : 관리자 접속 포트(SSH)"
+      ],
+      "correctAnswer": "3876 : 서버내 정책 수집 포트",
+      "correctAnswers": null,
+      "points": 3
+    },
+    {
+      "questionId": "3d960656",
+      "title": "14. HOT 서버 한대 당 elasticsearch shards수는 최대 몇개 인가?",
+      "type": "RADIO",
+      "options": [
+        "500",
+        "1000",
+        "1500",
+        "2000"
+      ],
+      "correctAnswer": "1000",
+      "correctAnswers": null,
+      "points": 3
+    },
+    {
+      "questionId": "5c0ed954",
+      "title": "15.  다음 중 윈도우 이벤트 관련 인덱스는?",
+      "type": "RADIO",
+      "options": [
+        "threat2",
+        "scriptmaster",
+        "endpoint2",
+        "winevt"
+      ],
+      "correctAnswer": "winevt",
+      "correctAnswers": null,
+      "points": 3
+    },
+    {
+      "questionId": "0e5ec29e",
+      "title": "16. 에이전트 운영모드가 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "NAC플러그인",
+        "단독버전",
+        "단독버전 + SIEM 연동",
+        "단독버전 + NAC 연동"
+      ],
+      "correctAnswer": "단독버전 + SIEM 연동",
+      "correctAnswers": null,
+      "points": 3
+    },
+    {
+      "questionId": "4553c94e",
+      "title": "17.  EDR 위협 처리 종류가 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "악성",
+        "안전",
+        "미확인",
+        "보류"
+      ],
+      "correctAnswer": "미확인",
+      "correctAnswers": null,
+      "points": 3
+    },
+    {
+      "questionId": "4be57763",
+      "title": "18. SYSLOG 서버 설정 시 틀린 내용은?",
+      "type": "RADIO",
+      "options": [
+        "SIEM 및 기타 보안솔루션에서 다양한 용도로 활용이 가능하다.",
+        "중계 서버 IP를 필수로 선택해야 한다.",
+        "존재하지 않는 필드는 NULL 문자열로 대체 가능하다.",
+        "\"필터 설정\"으로 특정 필드의 Key와 Value의 조건으로 필터링하여 전송이 가능하다."
+      ],
+      "correctAnswer": "중계 서버 IP를 필수로 선택해야 한다.",
+      "correctAnswers": null,
+      "points": 3
+    },
+    {
+      "questionId": "26547795",
+      "title": "19. kafka 동작 설정을 위한 알맞는 config를 고르시오.",
+      "type": "RADIO",
+      "options": [
+        "log-server enable",
+        "data-server enable",
+        "message-server enable",
+        "threat-detector enable"
+      ],
+      "correctAnswer": "message-server enable",
+      "correctAnswers": null,
+      "points": 3
+    },
+    {
+      "questionId": "6df0134a",
+      "title": "20. EDR Agent 동작 과정에서 4번 안에 알맞는 사항은?",
+      "type": "RADIO",
+      "options": [
+        "1번: Logstash (로그 정규화)",
+        "2번: Kafka (Agent 로그 수신)",
+        "3번: RDBMS (로그 분산 저장)",
+        "4번: ThreatDetector (위협 탐지)"
+      ],
+      "correctAnswer": "4번: ThreatDetector (위협 탐지)",
+      "correctAnswers": null,
+      "points": 3
+    },
+    {
+      "questionId": "4d85b159",
+      "title": "21. 안티랜섬 사용모드 설명 중 알맞지 않은 사항은?",
+      "type": "RADIO",
+      "options": [
+        "Monitoring 모드는 랜섬웨어가 탐지되더라도 전체대응을 하지 않는다.",
+        "Monitoring 모드는  MBR 보호 옵션에 의한 변조행위는 프로세스 차단 수행을 한다.",
+        "Active 모드 (수동복원)는 랜섬웨어를 탐지하고 프로세스만 대응(강제종료, 삭제) 한다.",
+        "Active 모드 (자동복원)는 랜섬웨어를 탐지하고 자동 대응(강제종료, 삭제, 복원) 한다."
+      ],
+      "correctAnswer": "Monitoring 모드는  MBR 보호 옵션에 의한 변조행위는 프로세스 차단 수행을 한다.",
+      "correctAnswers": null,
+      "points": 3
+    },
+    {
+      "questionId": "1ac94444",
+      "title": "22. 안티랜섬 기능 설명 중 알맞지 않은 사항은?",
+      "type": "RADIO",
+      "options": [
+        "1번",
+        "2번",
+        "3번",
+        "4번"
+      ],
+      "correctAnswer": "3번",
+      "correctAnswers": null,
+      "points": 3
+    }
+  ],
+  "subjectiveQuestions": [
+    {
+      "questionId": "68e9b70f",
+      "title": "1. (서술형) 파일 upload 행위 로그를 검색하기 위한 쿼리문을 작성하세요.",
+      "maxScore": 5,
+      "modelAnswer": "EventSubType:FileUpload",
+      "rubric": ""
+    },
+    {
+      "questionId": "15163284",
+      "title": "2. (단답형) EDR에서 제공하는 Fileless 형태의 위협을 탐지하는 엔진은?",
+      "maxScore": 5,
+      "modelAnswer": "XBA",
+      "rubric": ""
+    },
+    {
+      "questionId": "26d866b6",
+      "title": "3.  (단답형) EDR에서 위협을 탐지하는 서비스 데몬은?",
+      "maxScore": 5,
+      "modelAnswer": "Threatdetector",
+      "rubric": ""
+    },
+    {
+      "questionId": "14adc6cb",
+      "title": "4. (단답형) 오탐 및 최신 악성코드 분석 결과를 고객에게 공유하기 위해 Genian 자체 평판시스템을 제공하는데 이것은 무엇일까요?",
+      "maxScore": 5,
+      "modelAnswer": "Eco System",
+      "rubric": ""
+    },
+    {
+      "questionId": "46461256",
+      "title": "5. (단답형) EDR Elasticsearch 인덱스중 디스크 공간을 고려하여 유지기간 설정하는데 중요한 인덱스는 무엇일까요?",
+      "maxScore": 5,
+      "modelAnswer": "Endpoint2",
+      "rubric": ""
+    },
+    {
+      "questionId": "581687f4",
+      "title": "6. (단답형) 로그를 수집하는 EventType 5가지를 작성하세요. (한글로 작성해도 됨)",
+      "maxScore": 5,
+      "modelAnswer": "Process, File, Registry, Module, Network",
+      "rubric": "핵심 항목 5개(Process/File/Registry/Module/Network) 각 1점 - AI 채점이 일치 개수 비율로 부분 점수를 계산한다. 한글 표기도 정답으로 인정한다."
+    },
+    {
+      "questionId": "14ddac73",
+      "title": "7. (서술형) 위협 관리에서 악성으로 판정 시 대응 정책으로 \"기본정책\"에 대해 서술하시요.",
+      "maxScore": 5,
+      "modelAnswer": "정책 내 대응 정책에 설정된 내용에 따라 대응을 수행합니다.",
+      "rubric": ""
+    },
+    {
+      "questionId": "395da7bf",
+      "title": "8. (단답형)  EDR은 콘솔모드를 총 4가지 지원합니다. EDR 서비스 데몬 확인 및 동작 상태를 확인하기 위해 사용하는 모드는 무엇일까요?",
+      "maxScore": 5,
+      "modelAnswer": "Shell 모드",
+      "rubric": ""
+    }
+  ]
+}

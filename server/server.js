@@ -45,6 +45,13 @@ const EXAM_SHEETS = {
   },
 };
 
+// EDR은 초급 과정만 운영한다. 프론트에서 잘못된 level이 넘어와도 여기서 초급으로 되돌린다
+// (그냥 두면 "Genian EDR 중급" 처럼 존재하지 않는 평가명으로 안내 메일이 나간다)
+function normalizeLevel(examType, level) {
+  if (examType === 'EDR') return '초급';
+  return level || '초급';
+}
+
 // 출석 여부를 나타내는 행 배경색 (Google Sheets 기본 팔레트, 0~1 RGB 비율)
 const COLOR_PRESENT = { red: 1, green: 1, blue: 0 }; // 노랑 = 출석
 const COLOR_ABSENT = { red: 1, green: 0, blue: 0 };  // 빨강 = 결석
@@ -340,7 +347,7 @@ app.post('/api/send-exam-emails', async (req, res) => {
 
   const examType = (req.body.examType || '').toUpperCase();
   const recipients = req.body.recipients;
-  const level = req.body.level || '초급';
+  const level = normalizeLevel(examType, req.body.level);
   const year = parseInt(req.body.year, 10) || new Date().getFullYear();
   const month = parseInt(req.body.month, 10) || (new Date().getMonth() + 1);
 
@@ -436,8 +443,8 @@ app.post('/api/exam-result', async (req, res) => {
     res.json({ success: true, ...written });
   } catch (err) {
     console.error(err);
-    // 결과 탭을 못 찾은 건 서버 장애가 아니라 시트 설정 문제라, 원인이 드러나는 400으로 구분해 내려준다
-    if (err.code === 'SHEET_TAB_NOT_FOUND') {
+    // 결과 탭/컬럼을 못 찾은 건 서버 장애가 아니라 시트 설정 문제라, 원인이 드러나는 400으로 구분해 내려준다
+    if (err.code === 'SHEET_TAB_NOT_FOUND' || err.code === 'SHEET_COLUMN_NOT_FOUND') {
       return res.status(400).json({ error: err.message, code: err.code });
     }
     res.status(500).json({ error: err.message });
@@ -482,7 +489,8 @@ app.post('/api/grade-from-form', async (req, res) => {
     return res.status(401).json({ error: 'unauthorized' });
   }
 
-  const { year, month, examType, level = '초급', formUrl, partners, skipSubjectiveGrading = false } = req.body;
+  const { year, month, examType, formUrl, partners, skipSubjectiveGrading = false } = req.body;
+  const level = normalizeLevel((examType || '').toUpperCase(), req.body.level);
   if (!year || !month || !examType || !Array.isArray(partners)) {
     return res.status(400).json({ error: 'year, month, examType, partners 가 필요합니다.' });
   }
@@ -514,11 +522,12 @@ app.get('/api/exam-forms/status', async (req, res) => {
 
   const year = parseInt(req.query.year, 10);
   const month = parseInt(req.query.month, 10);
-  const level = req.query.level || '초급';
+  const examType = (req.query.examType || 'NAC').toUpperCase();
+  const level = normalizeLevel(examType, req.query.level);
   if (!year || !month) return res.status(400).json({ error: 'year, month 필요' });
 
   try {
-    const status = await getExamFormStatus(year, month, level);
+    const status = await getExamFormStatus(year, month, level, examType);
     res.json(status);
   } catch (err) {
     console.error(err);
@@ -530,11 +539,13 @@ app.get('/api/exam-forms/status', async (req, res) => {
 app.post('/api/exam-forms/create', async (req, res) => {
   if (!isAuthorized(req)) return res.status(401).json({ error: 'unauthorized' });
 
-  const { year, month, level = '초급' } = req.body;
+  const { year, month } = req.body;
+  const examType = (req.body.examType || 'NAC').toUpperCase();
+  const level = normalizeLevel(examType, req.body.level);
   if (!year || !month) return res.status(400).json({ error: 'year, month 필요' });
 
   try {
-    const result = await createExamForm(year, month, level);
+    const result = await createExamForm(year, month, level, examType);
     res.json(result);
   } catch (err) {
     console.error(err);
@@ -566,14 +577,16 @@ app.post('/api/exam-forms/publish', async (req, res) => {
 app.post('/api/exam-check/match', async (req, res) => {
   if (!isAuthorized(req)) return res.status(401).json({ error: 'unauthorized' });
 
-  const { year, month, level = '초급', partners } = req.body;
+  const { year, month, partners } = req.body;
+  const examType = (req.body.examType || 'NAC').toUpperCase();
+  const level = normalizeLevel(examType, req.body.level);
   if (!year || !month) return res.status(400).json({ error: 'year, month 필요' });
   if (!Array.isArray(partners)) return res.status(400).json({ error: 'partners 배열 필요' });
 
   try {
-    const status = await getExamFormStatus(Number(year), Number(month), level);
+    const status = await getExamFormStatus(Number(year), Number(month), level, examType);
     if (!status.form) {
-      return res.status(404).json({ error: `${year}년 ${month}월 ${level} 시험 폼이 존재하지 않습니다. 문제 폼 생성 탭에서 먼저 생성하세요.` });
+      return res.status(404).json({ error: `${year}년 ${month}월 ${examType} ${level} 시험 폼이 존재하지 않습니다. 문제 폼 생성 탭에서 먼저 생성하세요.` });
     }
 
     const result = await matchExamResponses(status.form.id, partners);

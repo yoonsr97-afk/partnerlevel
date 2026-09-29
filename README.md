@@ -81,10 +81,11 @@ server/
 | 응시 확인 | 완료 | Google Forms 응답 직접 읽기 |
 | AI 채점 (객관식) | 완료 | 정답 키 JSON 필요 |
 | AI 채점 (주관식) | 완료 | Anthropic Claude API |
-| 승인 결과 시트 기록 (NAC) | 완료 | 평가현황 시트 |
-| 승인 결과 시트 기록 (EDR) | 미연동 | `.env`에 EDR 시트 ID 추가 시 자동 활성화 |
+| 승인 결과 시트 기록 (NAC) | 완료 | 평가현황 시트 (초급 탭) |
+| 승인 결과 시트 기록 (EDR) | 완료 | 같은 평가현황 시트의 EDR 탭 |
 | 수료증 PDF 생성 | 완료 | LibreOffice headless (`soffice`) |
 | 중급 시험 폼 템플릿 | 미설정 | `.env`의 `TEMPLATE_FORM_ID_NAC_MID` 입력 필요 |
+| EDR 시험 폼 템플릿 | 미설정 | `.env`의 `TEMPLATE_FORM_ID_EDR_A` 입력 필요 (폼 "생성" 버튼용. 폼이 이미 있으면 조회·채점은 정상 동작) |
 
 ---
 
@@ -122,8 +123,10 @@ ADMIN_PASSWORD_HASH=...
 MAIL_USER=...@gmail.com
 MAIL_APP_PASSWORD=...
 
-# 평가현황 시트
+# 평가현황 시트 (NAC/EDR 탭이 같은 문서에 들어있어 하나만 설정하면 된다.
+# EDR이 별도 문서로 분리되면 RESULTS_SPREADSHEET_ID_EDR 를 추가한다)
 RESULTS_SPREADSHEET_ID_NAC=...
+RESULTS_SPREADSHEET_ID_EDR=
 
 # Anthropic Claude AI 채점
 ANTHROPIC_API_KEY=...
@@ -133,6 +136,7 @@ TEMPLATE_FORM_ID_NAC_A=...
 TEMPLATE_FORM_ID_NAC_B=...
 TEMPLATE_FORM_ID_NAC_C=...
 TEMPLATE_FORM_ID_NAC_MID=
+TEMPLATE_FORM_ID_EDR_A=
 
 # 공유 드라이브 문제 자료 폴더
 EXAM_FORMS_ROOT_FOLDER=80.문제자료(2020~)

@@ -1,9 +1,14 @@
 /* =========================================================================
  * 시험 폼 생성 모듈
  * -------------------------------------------------------------------------
- * 1. 공유 드라이브 "80.문제자료(2020~)" → "NAC 초급/중급(YYYY)" 폴더 탐색
- * 2. 템플릿 폼(.env: TEMPLATE_FORM_ID_NAC_A/B/C/MID)을 복사 → 이름 변경 → 폴더 이동
+ * 1. 공유 드라이브 "80.문제자료(2020~)" → 시험별 연도 폴더 탐색
+ *    (NAC: "NAC 초급/중급(YYYY)"  |  EDR: "EDR초급(YYYY)")
+ * 2. 템플릿 폼(.env: TEMPLATE_FORM_ID_NAC_A/B/C/MID, TEMPLATE_FORM_ID_EDR_A)을
+ *    복사 → 이름 변경 → 폴더 이동
  * 3. 게시: Forms API setPublishSettings 사용 (Drive 공유 설정 불변 → 편집자 링크 제한됨 유지)
+ *
+ * 폴더명·파일명 규칙이 NAC과 EDR에서 서로 달라서, 시험별 차이를 EXAM_FORM_SPECS
+ * 한 곳에 모아두고 나머지 흐름(탐색 → 복사 → 이동 → 게시)은 공유한다.
  * ========================================================================= */
 
 require('dotenv').config();
@@ -16,26 +21,63 @@ function extractFormId(value) {
   return m ? m[1] : (value || '').trim();
 }
 
-// 월 → 유형 코드
-// 초급: 월 % 3 → A/B/C 순환  |  중급: 유형 없음 → 'MID' 고정
-function getFormTypeChar(month, level) {
-  if (level === '중급') return 'MID';
-  const r = month % 3;
-  if (r === 1) return 'A';
-  if (r === 2) return 'B';
-  return 'C';
-}
+/* -------------------------------------------------------------------------
+ * 시험 종류별 폴더/파일명 규칙
+ * ------------------------------------------------------------------------- */
+const EXAM_FORM_SPECS = {
+  NAC: {
+    // 초급: 월 % 3 → A/B/C 순환  |  중급: 유형 없음 → 'MID' 고정
+    formTypeChar: (month, level) => {
+      if (level === '중급') return 'MID';
+      const r = month % 3;
+      if (r === 1) return 'A';
+      if (r === 2) return 'B';
+      return 'C';
+    },
+    // 폴더명: "NAC 초급(2026)" / "NAC 중급(2026)"
+    folderKeywords: (year, level) => [level === '중급' ? 'NAC 중급' : 'NAC 초급', String(year)],
+    // 파일명: "초급 평가문제 A형_260701_2026년 7월" / "중급 평가문제_260701_2026년 7월"
+    buildFormName: (year, month, typeChar, level) => {
+      const yy = String(year).slice(-2);
+      const mm = String(month).padStart(2, '0');
+      if (level === '중급') return `중급 평가문제_${yy}${mm}01_${year}년 ${month}월`;
+      return `초급 평가문제 ${typeChar}형_${yy}${mm}01_${year}년 ${month}월`;
+    },
+    // Drive 1차 필터 (서버측)
+    driveNameKeyword: (month, level) => (level === '중급'
+      ? '중급 평가문제'
+      : `초급 평가문제 ${EXAM_FORM_SPECS.NAC.formTypeChar(month, level)}형`),
+    // 2차 정밀 매칭 (클라이언트측) - 날짜 부분은 무시하고 유형/연월만 본다
+    matchesMonth: (name, year, month, level) => {
+      if (!name.includes(`${year}년 ${month}월`)) return false;
+      if (level === '중급') return name.includes('중급 평가문제');
+      return name.includes(`초급 평가문제 ${EXAM_FORM_SPECS.NAC.formTypeChar(month, level)}형`);
+    },
+    templateEnvKey: (formType) => `TEMPLATE_FORM_ID_NAC_${formType}`,
+  },
+  EDR: {
+    // EDR은 A형 한 종류만 운영한다 (월별 A/B/C 순환 없음)
+    formTypeChar: () => 'A',
+    // 폴더명: "EDR초급(2026)" - NAC과 달리 "EDR"과 "초급" 사이에 공백이 없어 따로 찾는다
+    folderKeywords: (year) => ['EDR', '초급', String(year)],
+    // 파일명: "EDR 초급 평가문제_A안_20260624_6월"
+    // 날짜(8자리)는 실제 시험일이라 앱이 알 수 없어, 생성 시에는 해당 월 1일로 만든다.
+    // 탐색은 날짜를 보지 않으므로 수동으로 만든 폼(실제 시험일자)도 그대로 찾아낸다.
+    buildFormName: (year, month) => {
+      const mm = String(month).padStart(2, '0');
+      return `EDR 초급 평가문제_A안_${year}${mm}01_${month}월`;
+    },
+    driveNameKeyword: () => 'EDR 초급 평가문제',
+    // "_6월"로 끝나야 한다 - 그냥 "6월" 포함으로 보면 날짜 자리의 숫자와 뒤섞일 수 있다
+    matchesMonth: (name, year, month) => name.includes('EDR 초급 평가문제') && new RegExp(`_${month}월\\s*$`).test(name.trim()),
+    templateEnvKey: () => 'TEMPLATE_FORM_ID_EDR_A',
+  },
+};
 
-// 폼 이름 생성
-// 초급 예: "초급 평가문제 a형_260701_2026년 7월"
-// 중급 예: "중급 평가문제_260701_2026년 7월"
-function buildFormName(year, month, typeChar, level) {
-  const yy = String(year).slice(-2);
-  const mm = String(month).padStart(2, '0');
-  if (level === '중급') {
-    return `중급 평가문제_${yy}${mm}01_${year}년 ${month}월`;
-  }
-  return `초급 평가문제 ${typeChar}형_${yy}${mm}01_${year}년 ${month}월`;
+function getExamFormSpec(examType) {
+  const spec = EXAM_FORM_SPECS[(examType || 'NAC').toUpperCase()];
+  if (!spec) throw new Error(`지원하지 않는 examType: ${examType}`);
+  return spec;
 }
 
 async function getDriveClient() {
@@ -71,46 +113,53 @@ async function findRootFolder(drive) {
   return f;
 }
 
-// 루트 하위에서 "NAC 초급/중급" + 연도가 들어간 폴더 탐색
-async function findNacFolder(drive, rootFolderId, year, level) {
-  const levelKw = level === '중급' ? 'NAC 중급' : 'NAC 초급';
+// 루트 하위에서 시험별 연도 폴더 탐색 (NAC: "NAC 초급(2026)" / EDR: "EDR초급(2026)")
+async function findExamFolder(drive, rootFolderId, year, level, examType) {
+  const spec = getExamFormSpec(examType);
+  const keywords = spec.folderKeywords(year, level);
+  const containsClauses = keywords.map((kw) => `name contains '${kw}'`).join(' and ');
   const res = await drive.files.list({
-    q: `'${rootFolderId}' in parents and name contains '${levelKw}' and name contains '${year}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+    q: `'${rootFolderId}' in parents and ${containsClauses} and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
     fields: 'files(id, name)',
     ...DRIVE_OPT,
   });
   const f = (res.data.files || [])[0];
-  if (!f) throw new Error(`${levelKw} ${year} 폴더를 찾을 수 없습니다. (공유 드라이브 확인 필요)`);
+  if (!f) {
+    throw new Error(
+      `${keywords.join(' ')} 폴더를 찾을 수 없습니다. `
+      + `공유 드라이브의 문제자료 루트 아래에 해당 폴더가 있는지 확인해 주세요.`
+    );
+  }
   return f;
 }
 
 // 특정 폴더에서 해당 월 폼 존재 여부 확인
-async function findExistingMonthForm(drive, folderId, year, month, level) {
-  const yearMonthStr = `${year}년 ${month}월`;
-  const nameFilter = level === '중급'
-    ? `name contains '중급 평가문제'`
-    : `name contains '초급 평가문제 ${getFormTypeChar(month, level)}형'`;
+// Drive의 name contains 는 부분일치가 느슨해서, 1차로 넓게 받아온 뒤 이름 규칙으로 다시 걸러낸다.
+async function findExistingMonthForm(drive, folderId, year, month, level, examType) {
+  const spec = getExamFormSpec(examType);
   const res = await drive.files.list({
-    q: `'${folderId}' in parents and ${nameFilter} and name contains '${yearMonthStr}' and mimeType = 'application/vnd.google-apps.form' and trashed = false`,
+    q: `'${folderId}' in parents and name contains '${spec.driveNameKeyword(month, level)}' and mimeType = 'application/vnd.google-apps.form' and trashed = false`,
     fields: 'files(id, name, webViewLink)',
     ...DRIVE_OPT,
   });
-  return (res.data.files || [])[0] || null;
+  const files = res.data.files || [];
+  return files.find((f) => spec.matchesMonth(f.name || '', year, month, level)) || null;
 }
 
 /* =========================================================================
  * 상태 조회: 해당 월 폼 존재 여부 + 게시 여부
  * ========================================================================= */
-async function getExamFormStatus(year, month, level = '초급') {
+async function getExamFormStatus(year, month, level = '초급', examType = 'NAC') {
   const drive = await getDriveClient();
-  const formType = getFormTypeChar(month, level); // A/B/C 또는 MID
-  const templateKey = `TEMPLATE_FORM_ID_NAC_${formType}`;
+  const spec = getExamFormSpec(examType);
+  const formType = spec.formTypeChar(month, level); // NAC: A/B/C/MID, EDR: A 고정
+  const templateKey = spec.templateEnvKey(formType);
   const templateId = process.env[templateKey] || '';
 
   const root = await findRootFolder(drive);
-  const nacFolder = await findNacFolder(drive, root.id, year, level);
+  const examFolder = await findExamFolder(drive, root.id, year, level, examType);
 
-  const existing = await findExistingMonthForm(drive, nacFolder.id, year, month, level);
+  const existing = await findExistingMonthForm(drive, examFolder.id, year, month, level, examType);
 
   let published = false;
   let respondentUrl = '';
@@ -136,7 +185,7 @@ async function getExamFormStatus(year, month, level = '초급') {
     year, month, level,
     formType,
     templateConfigured: !!templateId,
-    targetFolder: { id: nacFolder.id, name: nacFolder.name },
+    targetFolder: { id: examFolder.id, name: examFolder.name },
     form: existing
       ? { id: existing.id, name: existing.name, editUrl, respondentUrl, published }
       : null,
@@ -146,10 +195,11 @@ async function getExamFormStatus(year, month, level = '초급') {
 /* =========================================================================
  * 폼 생성: 템플릿 복사 → 이름 변경 → 폴더 이동
  * ========================================================================= */
-async function createExamForm(year, month, level = '초급') {
+async function createExamForm(year, month, level = '초급', examType = 'NAC') {
   const drive = await getDriveClient();
-  const formType = getFormTypeChar(month, level); // A/B/C 또는 MID
-  const templateKey = `TEMPLATE_FORM_ID_NAC_${formType}`;
+  const spec = getExamFormSpec(examType);
+  const formType = spec.formTypeChar(month, level); // NAC: A/B/C/MID, EDR: A 고정
+  const templateKey = spec.templateEnvKey(formType);
   // URL 전체를 넣었을 경우에도 ID만 추출
   const templateId = extractFormId(process.env[templateKey]);
 
@@ -160,10 +210,10 @@ async function createExamForm(year, month, level = '초급') {
   }
 
   const root = await findRootFolder(drive);
-  const nacFolder = await findNacFolder(drive, root.id, year, level);
+  const examFolder = await findExamFolder(drive, root.id, year, level, examType);
 
   // 이미 존재하면 기존 폼 반환
-  const existing = await findExistingMonthForm(drive, nacFolder.id, year, month, level);
+  const existing = await findExistingMonthForm(drive, examFolder.id, year, month, level, examType);
   if (existing) {
     return {
       id: existing.id,
@@ -174,7 +224,7 @@ async function createExamForm(year, month, level = '초급') {
     };
   }
 
-  const newName = buildFormName(year, month, formType, level);
+  const newName = spec.buildFormName(year, month, formType, level);
 
   // ① 템플릿 복사 (parents 미지정 → 서비스 계정 My Drive에 생성)
   const copied = await drive.files.copy({
@@ -191,7 +241,7 @@ async function createExamForm(year, month, level = '초급') {
   await drive.files.update({
     fileId: formId,
     supportsAllDrives: true,
-    addParents: nacFolder.id,
+    addParents: examFolder.id,
     removeParents: prevParents,
     fields: 'id, parents',
     requestBody: {},
@@ -263,4 +313,12 @@ async function deleteExamForm(formId) {
   return { deleted: true };
 }
 
-module.exports = { getExamFormStatus, createExamForm, publishExamForm, deleteExamForm };
+module.exports = {
+  getExamFormStatus,
+  createExamForm,
+  publishExamForm,
+  deleteExamForm,
+  // 채점 모듈(formsGrading)도 같은 파일명 규칙으로 폼을 찾아야 해서 함께 노출한다
+  EXAM_FORM_SPECS,
+  getExamFormSpec,
+};

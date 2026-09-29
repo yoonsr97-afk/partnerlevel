@@ -21,9 +21,13 @@ function getClient() {
   return _client;
 }
 
-const SYSTEM_PROMPT = `당신은 NAC 초급 시험 채점 담당자입니다.
+// 채점 기준은 시험 종류와 무관하게 동일하다 - 어떤 시험을 채점 중인지만 알려준다.
+function buildSystemPrompt(examType) {
+  const label = examType ? `${examType} 초급` : '파트너 정기평가';
+  return `당신은 ${label} 시험 채점 담당자입니다.
 반드시 제공된 [모범답안]만을 근거로 채점하며, 모범답안에 없는 내용을 추론하거나 가점을 부여하지 않습니다.
 응답은 반드시 JSON만 반환하고, 설명 텍스트를 포함하지 않습니다.`;
+}
 
 function buildUserPrompt(question, modelAnswer, studentAnswer, maxScore) {
   return `[문항]: ${question}
@@ -63,7 +67,7 @@ function buildUserPrompt(question, modelAnswer, studentAnswer, maxScore) {
  * @param {number} params.maxScore      - 배점 (기본 4점)
  * @returns {Promise<{requiredItems, matchedItems, unmatchedItems, score, rationale}>}
  */
-async function gradeSubjectiveAnswer({ question, modelAnswer, studentAnswer, maxScore = 4 }) {
+async function gradeSubjectiveAnswer({ question, modelAnswer, studentAnswer, maxScore = 4, examType = '' }) {
   // 모범답안 미등록
   if (!modelAnswer || modelAnswer.trim() === '' || modelAnswer === '(정답 미등록)') {
     return { requiredItems: [], matchedItems: [], unmatchedItems: [], score: 0, rationale: '모범답안 미등록 — 채점 불가' };
@@ -76,7 +80,7 @@ async function gradeSubjectiveAnswer({ question, modelAnswer, studentAnswer, max
   const response = await getClient().messages.create({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 800,
-    system: SYSTEM_PROMPT,
+    system: buildSystemPrompt(examType),
     messages: [{ role: 'user', content: buildUserPrompt(question, modelAnswer, studentAnswer, maxScore) }],
   });
 

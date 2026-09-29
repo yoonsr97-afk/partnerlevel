@@ -969,6 +969,7 @@ async function fetchExamCheckMatch(level) {
       year: state.selectedYear,
       month: state.selectedMonth,
       level,
+      examType: state.examType,
       partners,
     }),
   }); // { formName, totalResponses, matched: [{name, company, matchType}], unmatched }
@@ -1262,7 +1263,7 @@ function apiKey() {
 }
 
 async function fetchExamFormStatus() {
-  const url = `${SHEETS_API_BASE_URL}/api/exam-forms/status?key=${apiKey()}&year=${state.selectedYear}&month=${state.selectedMonth}&level=${encodeURIComponent(formCreateLevel)}`;
+  const url = `${SHEETS_API_BASE_URL}/api/exam-forms/status?key=${apiKey()}&year=${state.selectedYear}&month=${state.selectedMonth}&level=${encodeURIComponent(formCreateLevel)}&examType=${state.examType}`;
   return apiFetch(url);
 }
 
@@ -1271,7 +1272,7 @@ async function fetchCreateExamForm() {
   return apiFetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ year: state.selectedYear, month: state.selectedMonth, level: formCreateLevel }),
+    body: JSON.stringify({ year: state.selectedYear, month: state.selectedMonth, level: formCreateLevel, examType: state.examType }),
   });
 }
 
@@ -1595,12 +1596,35 @@ function switchExamType(examType) {
   gradingAutoSyncDone = false;
   gradingAiDone = false;
   renderExamTypeSwitch();
+  renderLevelSwitches();
   renderAll();
 }
 
 function renderExamTypeSwitch() {
-  document.querySelectorAll('.exam-type-btn').forEach((btn) => {
+  // 레벨(초급/중급) 버튼도 같은 .exam-type-btn 클래스를 쓰기 때문에, 시험 종류 버튼만 골라서 갱신한다.
+  // (전체를 대상으로 하면 dataset.examType이 없는 레벨 버튼의 active가 매번 벗겨진다)
+  document.querySelectorAll('[data-action="switch-exam-type"]').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.examType === state.examType);
+  });
+}
+
+/* EDR은 초급 과정만 운영한다 - 중급 버튼을 숨기고 선택도 초급으로 되돌린다.
+ * 그냥 두면 "Genian EDR 중급" 같은 존재하지 않는 평가명으로 안내 메일이 나갈 수 있다. */
+function renderLevelSwitches() {
+  const edrOnlyBasic = state.examType === 'EDR';
+
+  if (edrOnlyBasic) {
+    examSendLevel = '초급';
+    formCreateLevel = '초급';
+  }
+
+  document.querySelectorAll('[data-action="set-exam-send-level"]').forEach((btn) => {
+    if (btn.dataset.level === '중급') btn.hidden = edrOnlyBasic;
+    btn.classList.toggle('active', btn.dataset.level === examSendLevel);
+  });
+  document.querySelectorAll('[data-action="set-form-level"]').forEach((btn) => {
+    if (btn.dataset.level === '중급') btn.hidden = edrOnlyBasic;
+    btn.classList.toggle('active', btn.dataset.level === formCreateLevel);
   });
 }
 
@@ -1700,6 +1724,7 @@ async function init() {
   renderCurrentMonth();
   renderMonthDropdown();
   renderExamTypeSwitch();
+  renderLevelSwitches();
   initTabNav();
   initEventDelegation();
   renderAll();
