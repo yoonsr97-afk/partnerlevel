@@ -116,6 +116,56 @@ function colLetter(index) {
 }
 
 /* -------------------------------------------------------------------------
+ * GPI 초급 결과 - NAC 초급과 같은 탭을 쓰되, 행은 항상 따로 만든다.
+ *
+ * 과거 수기 운영에서는 한 사람이 NAC과 GPI를 같이 신청하면 한 행에 두 결과를
+ * 나란히 적었지만, 앱은 시험별로 행을 분리해 기록한다(NAC/EDR과 동일한 방식).
+ *
+ * 컬럼은 "GPI 접수" 헤더를 앵커로 잡아 상대 위치로 읽는다. 이 탭에는 "객관식",
+ * "점수", "결과" 같은 헤더가 NAC초급/NAC중급/GPI 블록에 중복으로 나타나서
+ * 이름만으로는 어느 블록인지 구분할 수 없기 때문이다.
+ * ------------------------------------------------------------------------- */
+const GPI_ANCHOR_HEADER = 'GPI접수'; // 실제 헤더는 "GPI\n접수"
+const GPI_BLOCK_OFFSETS = {
+  ENTRY_MARK: 0,        // GPI 접수 - O 표시
+  FORM_TYPE: 1,         // 시험 유형
+  DAY1: 2,              // 1일
+  DAY2: 3,              // 2일
+  ATTENDANCE: 4,        // 출석
+  OBJECTIVE_SCORE: 5,   // 객관식 (정답 개수가 아니라 점수)
+  SUBJECTIVE_SCORE: 6,  // 주관식 (점수)
+  TOTAL_SCORE: 7,       // 점수(총점)
+  RESULT: 8,            // 결과
+  LICENSE_PASSED: 9,    // GPI 라이센스 합격
+  REMARK: 10,           // 비고
+};
+
+function resolveGpiColumns(headerRow) {
+  const normalized = headerRow.map((cell) => normalizeHeader(cell && cell.formattedValue));
+  const anchor = normalized.indexOf(GPI_ANCHOR_HEADER);
+  // 공통 인적사항(A~O)은 NAC 블록과 같은 자리를 쓴다
+  const columns = {
+    TIMESTAMP: NAC_COL.TIMESTAMP,
+    EMAIL: NAC_COL.EMAIL,
+    VIDEO_TRAINING: NAC_COL.VIDEO_TRAINING,
+    ITEM_SELECTION: NAC_COL.ITEM_SELECTION,
+    MONTH: NAC_COL.MONTH,
+    COMPANY: NAC_COL.COMPANY,
+    COMPANY_ALT: NAC_COL.COMPANY_ALT,
+    DEPARTMENT: NAC_COL.DEPARTMENT,
+    NAME: NAC_COL.NAME,
+    POSITION: NAC_COL.POSITION,
+    PHONE: NAC_COL.PHONE,
+    JIRA_ID: NAC_COL.JIRA_ID,
+  };
+  if (anchor === -1) return columns; // 앵커가 없으면 GPI 블록 없음 - 호출부에서 에러로 처리한다
+  for (const [key, offset] of Object.entries(GPI_BLOCK_OFFSETS)) {
+    columns[key] = anchor + offset;
+  }
+  return columns;
+}
+
+/* -------------------------------------------------------------------------
  * 시험 종류별 결과 시트 설정
  * ------------------------------------------------------------------------- */
 const RESULT_SHEETS = {
@@ -143,6 +193,19 @@ const RESULT_SHEETS = {
     buildRow: buildEdrRow,
     // EDR은 A형 한 종류뿐이다 (NAC처럼 월별로 A/B/C를 돌리지 않는다)
     fixedFormType: 'A',
+  },
+  GPI: {
+    spreadsheetId: process.env.RESULTS_SPREADSHEET_ID_GPI || process.env.RESULTS_SPREADSHEET_ID_NAC,
+    label: 'GPI 초급',
+    // GPI 결과는 NAC 초급과 같은 탭에 들어있다 - 탭 패턴도 NAC과 동일하다
+    sheetNamePattern: (year) => new RegExp(`^${year}\\s*파트너\\s*평가현황\\s*\\(\\s*NAC(\\s*초급)?\\s*\\)$`),
+    sheetNameExample: (year) => `${year} 파트너 평가현황(NAC 초급)`,
+    resolveColumns: resolveGpiColumns,
+    buildRow: buildGpiRow,
+    fixedFormType: 'A',
+    // NAC과 탭을 공유하므로, 중복 확인 시 "이 행에 GPI 결과가 실제로 있는지"까지 봐야 한다.
+    // 이게 없으면 그 사람의 NAC 행(GPI 블록은 비어있음)을 GPI 기록으로 착각한다.
+    resultPresenceKeys: ['ENTRY_MARK', 'TOTAL_SCORE'],
   },
 };
 
@@ -232,7 +295,15 @@ async function fetchResultSheetRows(resultSheetConfig, year) {
     if (cell && cell.formattedValue) lastDataRowIndex = r;
   }
 
-  return { rows, lastDataRowIndex, sheetName, columns };
+  return {
+    rows,
+    lastDataRowIndex,
+    sheetName,
+    columns,
+    // GPI처럼 다른 시험과 탭을 공유하는 경우, 이 행에 그 시험의 결과가 실제로 있는지
+    // 판별할 컬럼들 (미지정이면 인적사항 일치만으로 기존 기록으로 본다)
+    resultPresenceKeys: resultSheetConfig.resultPresenceKeys || null,
+  };
 }
 
 function getCellValue(row, colIndex) {
@@ -248,13 +319,19 @@ function getCellValue(row, colIndex) {
 // 타임스탬프 기준 연도 교차검증을 하면 그런 행들을 못 찾는 문제가 있었다.
 function findExistingResult(sheetRows, { company, name, month }) {
   const targetMonth = `${month}월`;
-  const { rows, columns } = sheetRows;
+  const { rows, columns, resultPresenceKeys } = sheetRows;
 
   for (let r = 1; r < rows.length; r++) {
     const row = rows[r];
     if (getCellValue(row, columns.COMPANY).trim() !== String(company).trim()) continue;
     if (getCellValue(row, columns.NAME).trim() !== String(name).trim()) continue;
     if (getCellValue(row, columns.MONTH) !== targetMonth) continue;
+
+    // 탭을 공유하는 시험(GPI)은 인적사항이 같아도 그 시험 블록이 비어있으면 남의 행이다.
+    // 그런 행은 건너뛰고 계속 찾는다 - 같은 사람의 GPI 행이 뒤에 따로 있을 수 있다.
+    if (resultPresenceKeys && !resultPresenceKeys.some((k) => getCellValue(row, columns[k]).trim() !== '')) {
+      continue;
+    }
 
     return {
       objectiveScore: Number(getCellValue(row, columns.OBJECTIVE_SCORE)) || 0,
@@ -399,6 +476,69 @@ function buildEdrRow({ data, columns, sheetName }) {
     startColumnIndex: 0,
     values,
     formType: RESULT_SHEETS.EDR.fixedFormType,
+    alignments,
+  };
+}
+
+/* -------------------------------------------------------------------------
+ * GPI 초급 행 생성 - 인적사항(A~O)과 GPI 블록을 한 행에 쓴다.
+ * 사이에 낀 NAC 블록(P~AM)은 null로 남겨 건드리지 않는다.
+ *
+ * EDR과 마찬가지로 수식이 없는 블록이라 총점과 합격 판정을 직접 계산해 값으로 넣는다.
+ * 객관식/주관식 칸도 정답 개수가 아니라 점수 그 자체다.
+ * ------------------------------------------------------------------------- */
+function buildGpiRow({ data, columns, sheetName }) {
+  if (columns.ENTRY_MARK == null) {
+    const err = new Error(
+      `${sheetName} 탭에서 "GPI 접수" 컬럼을 찾을 수 없습니다. 헤더 행(1행)에 "GPI 접수" 열이 있는지 확인해 주세요.`
+    );
+    err.code = 'SHEET_COLUMN_NOT_FOUND';
+    throw err;
+  }
+
+  const objectiveScore = Number(data.objectiveScore) || 0;
+  const subjectiveScore = Number(data.subjectiveScore) || 0;
+  const totalScore = round1(objectiveScore + subjectiveScore);
+
+  const cells = {
+    TIMESTAMP: buildTimestamp(),
+    EMAIL: data.email || '',
+    ITEM_SELECTION: data.itemSelection || '',
+    MONTH: `${data.month}월`,
+    COMPANY: data.company || '',
+    DEPARTMENT: data.department || '',
+    NAME: data.name || '',
+    POSITION: data.position || '',
+    PHONE: asText(data.phone),
+    JIRA_ID: asText(data.jiraId),
+    ENTRY_MARK: 'O',
+    FORM_TYPE: RESULT_SHEETS.GPI.fixedFormType,
+    OBJECTIVE_SCORE: objectiveScore,
+    SUBJECTIVE_SCORE: subjectiveScore,
+    TOTAL_SCORE: totalScore,
+    RESULT: totalScore >= PASSING_SCORE ? '합격' : '불합격',
+  };
+
+  const writtenIndexes = Object.keys(cells).map((k) => columns[k]).filter((i) => i != null);
+  const lastIndex = Math.max(...writtenIndexes);
+
+  // 인적사항(A~O)과 GPI 블록(AN~) 사이에는 NAC 블록이 끼어 있다. 그 구간은 null로 두어
+  // 건드리지 않는다 - Sheets는 null을 "이 셀은 그대로"로 처리한다.
+  const values = new Array(lastIndex + 1).fill(null);
+  for (const [key, value] of Object.entries(cells)) {
+    if (columns[key] != null) values[columns[key]] = value;
+  }
+
+  const alignments = [];
+  if (columns.EMAIL != null && columns.JIRA_ID != null) {
+    alignments.push({ start: columns.EMAIL, end: columns.JIRA_ID + 1, horizontalAlignment: 'LEFT' });
+  }
+  alignments.push({ start: columns.ENTRY_MARK, end: lastIndex + 1, horizontalAlignment: 'CENTER' });
+
+  return {
+    startColumnIndex: 0,
+    values,
+    formType: RESULT_SHEETS.GPI.fixedFormType,
     alignments,
   };
 }

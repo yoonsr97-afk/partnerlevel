@@ -96,9 +96,11 @@ async function getExamResponses(formId) {
       company: extractTextAnswer(r, companyQId) || extractTextAnswer(r, companyAltQId) || null,
       email: r.respondentEmail || null,
     }))
-    .filter((r) => r.name); // 이름 없는 응답은 제외
+    // 이름도 이메일도 없으면 누구인지 알 수 없는 응답이다.
+    // (GPI 폼처럼 이름 문항 없이 인증 이메일만 받는 폼이 있어서 이름만으로 거르지 않는다)
+    .filter((r) => r.name || r.email);
 
-  return { totalResponses: responses.length, respondents };
+  return { totalResponses: responses.length, respondents, hasNameQuestion: !!nameQId };
 }
 
 /* =========================================================================
@@ -109,22 +111,31 @@ async function getExamResponses(formId) {
  * @returns {{ totalResponses, matched: Array<{name, company, matchType}>, unmatched: string[] }}
  * ========================================================================= */
 async function matchExamResponses(formId, partners) {
-  const { totalResponses, respondents } = await getExamResponses(formId);
+  const { totalResponses, respondents, hasNameQuestion } = await getExamResponses(formId);
 
   const matched = [];   // 파트너 명단에서 응시 확인된 사람
   const unmatched = []; // 폼엔 있지만 명단에 없는 응답자
 
   for (const r of respondents) {
     // 1순위: 이름 + 사명 동시 일치
-    let partner = partners.find(
+    let partner = r.name ? partners.find(
       (p) => p.name === r.name && r.company && p.company === r.company
-    );
+    ) : null;
     let matchType = '이름+사명';
 
     // 2순위: 이름만 일치
-    if (!partner) {
+    if (!partner && r.name) {
       partner = partners.find((p) => p.name === r.name);
       matchType = '이름';
+    }
+
+    // 3순위: 응답자 인증 이메일 일치
+    // 이름 문항이 없는 폼(GPI)에서는 이게 유일한 단서다. 단, 응시자가 신청서와 다른
+    // 개인 메일로 응시하면 여기서도 못 잡는다 - 그 경우 unmatched로 남아 눈에 띈다.
+    if (!partner && r.email) {
+      const email = r.email.toLowerCase();
+      partner = partners.find((p) => (p.email || '').toLowerCase() === email);
+      matchType = '이메일';
     }
 
     if (partner) {
@@ -133,11 +144,14 @@ async function matchExamResponses(formId, partners) {
         matched.push({ name: partner.name, company: partner.company, matchType });
       }
     } else {
-      unmatched.push(r.name + (r.company ? ` (${r.company})` : ''));
+      // 이름이 없는 폼이면 이메일로 표시해야 누구인지 알아볼 수 있다
+      unmatched.push(r.name
+        ? r.name + (r.company ? ` (${r.company})` : '')
+        : (r.email || '(식별 불가)'));
     }
   }
 
-  return { totalResponses, matched, unmatched };
+  return { totalResponses, matched, unmatched, hasNameQuestion };
 }
 
 module.exports = { getExamResponses, matchExamResponses };

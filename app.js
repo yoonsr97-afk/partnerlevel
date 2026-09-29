@@ -200,10 +200,12 @@ async function initLogin() {
 }
 
 /* ----------------------- 전역 state ----------------------- */
+const EXAM_TYPES = ['NAC', 'EDR', 'GPI'];
+
 const state = {
-  examType: 'NAC', // 'NAC' | 'EDR' - 현재 화면에 표시 중인 시험 종류
-  partnersByExam: { NAC: [], EDR: [] }, // Google Sheets 연동 이후 채워지는 단일 데이터 소스 (신청자 명단은 실데이터, 채점 점수는 아직 더미)
-  resultSheetUrlByExam: { NAC: null, EDR: null }, // 평가현황 시트 URL (examType별)
+  examType: 'NAC', // 'NAC' | 'EDR' | 'GPI' - 현재 화면에 표시 중인 시험 종류
+  partnersByExam: { NAC: [], EDR: [], GPI: [] }, // Google Sheets 연동 이후 채워지는 단일 데이터 소스 (신청자 명단은 실데이터, 채점 점수는 아직 더미)
+  resultSheetUrlByExam: { NAC: null, EDR: null, GPI: null }, // 평가현황 시트 URL (examType별)
   isSyncing: false,
   selectedMonth: new Date().getMonth() + 1, // 1~12 - 헤더의 월 선택 드롭다운에서 고른 조회 대상 월
   selectedYear: new Date().getFullYear(), // 같은 월이라도 연도가 다르면 다른 신청 건이므로 항상 같이 사용
@@ -618,7 +620,7 @@ function selectMonth(month) {
   renderMonthDropdown();
   closeMonthDropdown();
 
-  const hasSyncedBefore = state.partnersByExam.NAC.length > 0 || state.partnersByExam.EDR.length > 0;
+  const hasSyncedBefore = EXAM_TYPES.some((t) => state.partnersByExam[t].length > 0);
   if (hasSyncedBefore) {
     handleSheetsSync();
   }
@@ -711,12 +713,12 @@ function handleSheetsSync() {
   btn.disabled = true;
   btn.innerHTML = `<span class="btn-spinner"><span class="spinner"></span>연동 중...</span>`;
 
-  Promise.all([fetchFromSheets('NAC'), fetchFromSheets('EDR')]).then(([nacData, edrData]) => {
+  Promise.all(EXAM_TYPES.map((t) => fetchFromSheets(t))).then((results) => {
     // 파트너사 기준으로 묶어서 보이도록 회사명 가나다순 정렬 (모든 탭이 이 배열 순서를 그대로 따른다)
-    state.partnersByExam.NAC = sortByCompany(buildPartnerList(nacData.partners));
-    state.partnersByExam.EDR = sortByCompany(buildPartnerList(edrData.partners));
-    state.resultSheetUrlByExam.NAC = nacData.resultSheetUrl;
-    state.resultSheetUrlByExam.EDR = edrData.resultSheetUrl;
+    EXAM_TYPES.forEach((t, i) => {
+      state.partnersByExam[t] = sortByCompany(buildPartnerList(results[i].partners));
+      state.resultSheetUrlByExam[t] = results[i].resultSheetUrl;
+    });
     selectedExamSendIds.clear(); // 새로 불러온 명단 기준으로 id가 재배정되므로 기존 선택은 초기화
     expandedGradingIds.clear();
     gradingAutoSyncDone = false; // 새 명단 로드 시 채점 동기화 상태 초기화
@@ -1608,10 +1610,10 @@ function renderExamTypeSwitch() {
   });
 }
 
-/* EDR은 초급 과정만 운영한다 - 중급 버튼을 숨기고 선택도 초급으로 되돌린다.
+/* EDR과 GPI는 초급 과정만 운영한다 - 중급 버튼을 숨기고 선택도 초급으로 되돌린다.
  * 그냥 두면 "Genian EDR 중급" 같은 존재하지 않는 평가명으로 안내 메일이 나갈 수 있다. */
 function renderLevelSwitches() {
-  const edrOnlyBasic = state.examType === 'EDR';
+  const edrOnlyBasic = state.examType === 'EDR' || state.examType === 'GPI';
 
   if (edrOnlyBasic) {
     examSendLevel = '초급';

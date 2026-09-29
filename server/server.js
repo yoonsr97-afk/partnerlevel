@@ -33,22 +33,34 @@ const SERVICE_ACCOUNT_KEY_PATH = process.env.SERVICE_ACCOUNT_KEY_PATH
   ? path.resolve(__dirname, process.env.SERVICE_ACCOUNT_KEY_PATH)
   : path.join(__dirname, 'service-account.json');
 
-// 시험 종류별 신청자 명단 스프레드시트 - 각 시험은 별도의 구글폼/스프레드시트를 사용한다
+// 시험 종류별 신청자 명단 스프레드시트
+// NAC과 GPI는 같은 신청서(같은 시트)를 쓰고 "평가 항목 선택" 값으로만 구분된다.
+// 한 사람이 "NAC 초급 (신규), GPI 초급 (신규)"처럼 둘 다 신청할 수 있어서,
+// itemKeyword 포함 여부로 거른다(둘 다 신청했으면 양쪽 탭에 모두 나타난다).
+// EDR은 전용 신청서라 걸러낼 필요가 없다.
 const EXAM_SHEETS = {
   NAC: {
     spreadsheetId: process.env.SPREADSHEET_ID_NAC,
     sheetName: process.env.SHEET_NAME_NAC || '설문지 응답 시트1',
+    itemKeyword: 'NAC',
   },
   EDR: {
     spreadsheetId: process.env.SPREADSHEET_ID_EDR,
     sheetName: process.env.SHEET_NAME_EDR || '설문지 응답 시트1',
+    itemKeyword: null,
+  },
+  GPI: {
+    spreadsheetId: process.env.SPREADSHEET_ID_GPI || process.env.SPREADSHEET_ID_NAC,
+    sheetName: process.env.SHEET_NAME_GPI || process.env.SHEET_NAME_NAC || '설문지 응답 시트1',
+    itemKeyword: 'GPI',
   },
 };
 
-// EDR은 초급 과정만 운영한다. 프론트에서 잘못된 level이 넘어와도 여기서 초급으로 되돌린다
+// EDR/GPI는 초급 과정만 운영한다. 프론트에서 잘못된 level이 넘어와도 여기서 초급으로 되돌린다
 // (그냥 두면 "Genian EDR 중급" 처럼 존재하지 않는 평가명으로 안내 메일이 나간다)
+const BASIC_ONLY_EXAM_TYPES = new Set(['EDR', 'GPI']);
 function normalizeLevel(examType, level) {
-  if (examType === 'EDR') return '초급';
+  if (BASIC_ONLY_EXAM_TYPES.has(examType)) return '초급';
   return level || '초급';
 }
 
@@ -159,6 +171,10 @@ async function fetchPartnersFromSheet(sheetConfig, { targetMonth, targetYear }) 
   for (let r = 1; r < rows.length; r++) {
     const row = rows[r];
     if (getCellValue(row, idxMonth) !== targetMonth) continue;
+
+    // NAC/GPI는 같은 신청서를 공유하므로 "평가 항목 선택"으로 이 시험 신청 건만 골라낸다
+    if (sheetConfig.itemKeyword
+      && !getCellValue(row, idxItemSelection).toUpperCase().includes(sheetConfig.itemKeyword)) continue;
 
     // "평가 월 선택"엔 연도가 없으므로, 타임스탬프의 실제 연도가 올해(targetYear)인 경우만 포함한다.
     // (이게 없으면 작년/재작년에 같은 월을 선택했던 과거 신청 건도 같이 잡힌다)

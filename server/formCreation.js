@@ -72,6 +72,19 @@ const EXAM_FORM_SPECS = {
     matchesMonth: (name, year, month) => name.includes('EDR 초급 평가문제') && new RegExp(`_${month}월\\s*$`).test(name.trim()),
     templateEnvKey: () => 'TEMPLATE_FORM_ID_EDR_A',
   },
+  GPI: {
+    // GPI도 A형 한 종류만 운영한다
+    formTypeChar: () => 'A',
+    // 폴더명: "GPI 초급(2026)"
+    folderKeywords: (year) => ['GPI', '초급', String(year)],
+    // 파일명: "2026 GPI 정기평가(A)_2월"
+    buildFormName: (year, month) => `${year} GPI 정기평가(A)_${month}월`,
+    driveNameKeyword: () => 'GPI 정기평가',
+    // 연도 뒤 "년"이 붙은 과거 표기("2024년 GPI 정기평가(A)_10월")도 같이 받아준다.
+    // 월은 "_2월"로 끝나는 형태만 인정한다 - 그냥 포함으로 보면 "12월"이 "2월"에 걸린다.
+    matchesMonth: (name, year, month) => new RegExp(`^${year}년?\\s*GPI\\s*정기평가\\s*\\([A-Z]\\)_${month}월$`).test(name.trim()),
+    templateEnvKey: () => 'TEMPLATE_FORM_ID_GPI_A',
+  },
 };
 
 // examType을 빼먹으면 조용히 NAC으로 넘어가 엉뚱한 시험의 폼을 집어오기 때문에

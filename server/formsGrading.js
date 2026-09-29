@@ -109,6 +109,11 @@ async function loadFormStructure(formId) {
   const items = form.items || [];
   const formHasGrading = items.some((it) => it.questionItem?.question?.choiceQuestion && it.questionItem?.question?.grading);
 
+  // 주관식에 배점을 매겨둔 폼이라면, 배점이 없는 텍스트 문항은 채점 대상이 아니다.
+  // (GPI 폼의 "17~18번 공통 지문"이 텍스트 문항으로 들어있어 주관식으로 잡히던 문제)
+  // NAC 폼처럼 주관식에 배점을 아예 안 쓰는 폼에서는 이 규칙이 발동하지 않아 그대로 전부 남는다.
+  const textQuestionsUseGrading = items.some((it) => it.questionItem?.question?.textQuestion && it.questionItem?.question?.grading);
+
   items.forEach((item) => {
     const qi = item.questionItem;
     if (!qi) return;
@@ -144,6 +149,9 @@ async function loadFormStructure(formId) {
         ...(q.grading?.pointValue != null ? { points: q.grading.pointValue } : {}),
       });
     } else if (q.textQuestion) {
+      // 배점 있는 주관식이 존재하는 폼에서 이 문항만 배점이 없다면 지문/안내문이다
+      if (textQuestionsUseGrading && !q.grading) return;
+
       subjectiveQuestions.push({
         questionId,
         title,

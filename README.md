@@ -2,7 +2,7 @@
 
 관리자가 파트너 대상 평가(시험)를 시행할 때, 출석체크 → 문제 폼 생성 → 시험 발송 → 응시 확인 → AI 채점 → 승인 → 합격자 확인까지의 흐름을 하나의 화면에서 처리하는 SPA 웹앱입니다.
 
-**NAC / EDR 두 시험을 완전히 분리해서 관리합니다.** 헤더의 NAC/EDR 전환 버튼으로 보고 있는 시험을 바꿀 수 있고, 전 과정의 데이터가 서로 섞이지 않고 독립적으로 유지됩니다.
+**NAC / EDR / GPI 세 시험을 분리해서 관리합니다.** 헤더의 NAC/EDR/GPI 전환 버튼으로 보고 있는 시험을 바꿀 수 있고, 전 과정의 데이터가 서로 섞이지 않고 독립적으로 유지됩니다.
 
 ---
 
@@ -83,8 +83,10 @@ server/
 | AI 채점 (주관식) | 완료 | Anthropic Claude API |
 | 승인 결과 시트 기록 (NAC) | 완료 | 평가현황 시트 (초급 탭) |
 | 승인 결과 시트 기록 (EDR) | 완료 | 같은 평가현황 시트의 EDR 탭 |
+| 승인 결과 시트 기록 (GPI) | 완료 | NAC 초급 탭의 GPI 블록(AN~AV)에 별도 행으로 기록 |
 | 수료증 PDF 생성 | 완료 | LibreOffice headless (`soffice`) |
 | 중급 시험 폼 템플릿 | 미설정 | `.env`의 `TEMPLATE_FORM_ID_NAC_MID` 입력 필요 |
+| GPI 응시자 매칭 | 제약 | GPI 폼에 이름·회사 문항이 없어 인증 이메일로만 매칭된다. 응시자가 신청서와 다른 메일로 응시하면 매칭 실패 |
 | EDR 시험 폼 템플릿 | 미설정 | `.env`의 `TEMPLATE_FORM_ID_EDR_A` 입력 필요 (폼 "생성" 버튼용. 폼이 이미 있으면 조회·채점은 정상 동작) |
 
 ---
@@ -103,7 +105,8 @@ server/
 ```env
 PORT=4000
 
-# 신청자 명단 시트
+# 신청자 명단 시트 (GPI는 NAC과 같은 신청서를 쓰고 "평가 항목 선택"으로 구분한다.
+# GPI가 별도 신청서로 분리되면 SPREADSHEET_ID_GPI / SHEET_NAME_GPI 를 추가한다)
 SPREADSHEET_ID_NAC=...
 SHEET_NAME_NAC=설문지 응답 시트1
 SPREADSHEET_ID_EDR=...
@@ -137,6 +140,7 @@ TEMPLATE_FORM_ID_NAC_B=...
 TEMPLATE_FORM_ID_NAC_C=...
 TEMPLATE_FORM_ID_NAC_MID=
 TEMPLATE_FORM_ID_EDR_A=
+TEMPLATE_FORM_ID_GPI_A=
 
 # 공유 드라이브 문제 자료 폴더
 EXAM_FORMS_ROOT_FOLDER=80.문제자료(2020~)
