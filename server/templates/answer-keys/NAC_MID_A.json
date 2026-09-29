@@ -1,7 +1,7 @@
 {
   "examType": "NAC_MID",
   "formType": "A",
-  "formId": "1kFx6uMTiNlXv9C-SjsoIDMxlZoFtUkvvy7juxKGr6sM",
+  "formId": "1UTwqizld4R9E6jPcQtwZrrq76jX209auZvI7wbGeWOE",
   "pointsPerObjective": 1.5,
   "nameQuestionId": "719942a9",
   "_note": [
@@ -119,7 +119,7 @@
         "③ IP신청 시스템이 존재하는 고객사에 ‘MAC/IP 차단모드’를 권고했다.",
         "④ 1인 IP사용만 허용된 고객사에 ‘MAC/IP 차단모드’를 권고했다."
       ],
-      "correctAnswer": "",
+      "correctAnswer": "② DHCP를 사용하는 고객사에 ‘MAC/IP 차단모드’를 권고했다.",
       "correctAnswers": null,
       "points": 2
     },
@@ -497,7 +497,7 @@
         "③",
         "④"
       ],
-      "correctAnswer": "",
+      "correctAnswer": "④",
       "correctAnswers": null,
       "points": 2
     },
