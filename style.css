@@ -337,7 +337,7 @@ table.data-table.dash-table th[scope='row'] {
 }
 
 table.data-table.dash-table thead th:not(:first-child) {
-  width: 90px;
+  width: 96px;
   text-align: center;
   white-space: nowrap;
 }
@@ -352,11 +352,16 @@ table.data-table.dash-table td.dash-cell {
   font-variant-numeric: tabular-nums;
 }
 
-/* 미기록 열은 놓치면 안 되는 값이라 좌우로 경계를 준다 */
+/* 출석 현황(2~4열)과 평가 결과(5~7열) 사이를 갈라 읽기 쉽게 한다 */
 table.data-table.dash-table thead th:nth-child(5),
 table.data-table.dash-table tbody td:nth-child(5) {
   border-left: 1px solid var(--hairline);
-  border-right: 1px solid var(--hairline);
+}
+
+/* 마지막 "기록" 열은 그 달이 끝났는지 보는 칸이라 따로 떼어 둔다 */
+table.data-table.dash-table thead th:last-child,
+table.data-table.dash-table tbody td:last-child {
+  border-left: 1px solid var(--hairline);
 }
 
 /* 값이 0이라 굳이 들여다볼 필요가 없는 칸 */

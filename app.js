@@ -1660,14 +1660,16 @@ const EXAM_TYPE_LABELS = {
 function summarizeExam(examType) {
   const partners = state.partnersByExam[examType] || [];
   const recorded = partners.filter((p) => p.hasRecordedResult);
+  const present = partners.filter((p) => p.attendance === '출석').length;
   return {
     examType,
     applied: partners.length,
-    present: partners.filter((p) => p.attendance === '출석').length,
-    recorded: recorded.length,
-    missing: partners.length - recorded.length,
+    present,
+    absent: partners.length - present,
     passed: recorded.filter((p) => isPass(p.totalScore)).length,
     failed: recorded.filter((p) => !isPass(p.totalScore)).length,
+    recorded: recorded.length,
+    missing: partners.length - recorded.length,
   };
 }
 
@@ -1683,13 +1685,15 @@ function renderDashboardTab() {
     return;
   }
 
-  // 값이 0이면 흐리게, 처리할 일이 남아있으면 빨갛게. 클릭하면 그 시험의 해당 탭으로 이동한다.
-  const cell = (value, { tab, examType, warn = false, muted = false }) => {
+  // 값이 0이면 흐리게, 아직 처리가 남은 칸은 빨갛게. 클릭하면 그 시험의 해당 탭으로 이동한다.
+  // warn은 색만 바꾼다 - 여기 숫자는 "끝난 인원"이라 느낌표를 붙이면 오히려 헷갈린다.
+  const cell = (value, { tab, examType, warn = false, muted = false, title = '' }) => {
     if (value === 0 && !warn) {
       return `<td class="dash-cell dash-zero">0</td>`;
     }
     const cls = `dash-cell${warn ? ' dash-warn' : ''}${muted ? ' dash-muted' : ''}`;
-    return `<td class="${cls}"><button type="button" class="dash-link" data-action="dash-goto" data-exam-type="${examType}" data-goto-tab="${tab}">${warn ? '!' : ''}${value}</button></td>`;
+    const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+    return `<td class="${cls}"><button type="button" class="dash-link" data-action="dash-goto" data-exam-type="${examType}" data-goto-tab="${tab}"${titleAttr}>${value}</button></td>`;
   };
 
   const rows = summaries.map((s) => {
@@ -1705,10 +1709,15 @@ function renderDashboardTab() {
         <th scope="row">${escapeHtml(EXAM_TYPE_LABELS[s.examType])}</th>
         ${cell(s.applied, { tab: 'partners', examType: s.examType })}
         ${cell(s.present, { tab: 'attendance', examType: s.examType })}
-        ${cell(s.recorded, { tab: 'approval', examType: s.examType })}
-        ${cell(s.missing, { tab: 'approval', examType: s.examType, warn: s.missing > 0 })}
+        ${cell(s.absent, { tab: 'attendance', examType: s.examType, muted: true })}
         ${cell(s.passed, { tab: 'passList', examType: s.examType })}
         ${cell(s.failed, { tab: 'passList', examType: s.examType, muted: true })}
+        ${cell(s.recorded, {
+          tab: 'approval',
+          examType: s.examType,
+          warn: s.missing > 0, // 신청자 전원이 기록되기 전까지는 빨갛게 남는다
+          title: s.missing > 0 ? `신청 ${s.applied}명 중 ${s.missing}명 미기록` : `신청 ${s.applied}명 전원 기록 완료`,
+        })}
       </tr>`;
   }).join('');
 
@@ -1727,12 +1736,12 @@ function renderDashboardTab() {
         <thead>
           <tr>
             <th scope="col">시험</th>
-            <th scope="col">신청</th>
+            <th scope="col">신청 인원</th>
             <th scope="col">출석</th>
-            <th scope="col">결과 기록</th>
-            <th scope="col">미기록</th>
+            <th scope="col">미출석</th>
             <th scope="col">합격</th>
             <th scope="col">불합격</th>
+            <th scope="col">기록</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
