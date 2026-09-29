@@ -713,9 +713,14 @@ function handleSheetsSync() {
   if (state.isSyncing) return;
   state.isSyncing = true;
 
-  const btn = document.getElementById('syncSheetsBtn');
-  btn.disabled = true;
-  btn.innerHTML = `<span class="btn-spinner"><span class="spinner"></span>연동 중...</span>`;
+  // 연동 버튼이 파트너 목록 탭과 현황 탭 두 군데에 있다 - 둘 다 같이 잠근다
+  const btns = [document.getElementById('syncSheetsBtn'), document.getElementById('dashboardSyncBtn')].filter(Boolean);
+  const setBusy = (busy) => btns.forEach((b) => {
+    b.disabled = busy;
+    if (busy) b.innerHTML = `<span class="btn-spinner"><span class="spinner"></span>연동 중...</span>`;
+    else b.textContent = 'Google Sheets 연동';
+  });
+  setBusy(true);
 
   Promise.all(EXAM_TYPES.map((t) => fetchFromSheets(t))).then((results) => {
     // 파트너사 기준으로 묶어서 보이도록 회사명 가나다순 정렬 (모든 탭이 이 배열 순서를 그대로 따른다)
@@ -729,15 +734,13 @@ function handleSheetsSync() {
     gradingAiDone = false;
 
     state.isSyncing = false;
-    btn.disabled = false;
-    btn.textContent = 'Google Sheets 연동';
+    setBusy(false);
 
     renderAll();
     showToast('Google Sheets 연동이 완료되었습니다.');
   }).catch((err) => {
     state.isSyncing = false;
-    btn.disabled = false;
-    btn.textContent = 'Google Sheets 연동';
+    setBusy(false);
     showToast(`연동에 실패했습니다: ${err.message}`);
   });
 }
@@ -1483,6 +1486,7 @@ function handleApprove(id) {
     recordApprovalToSheets(partner)
       .then((data) => {
         partner.approvalStatus = '승인완료'; // 시트 기록 성공 후에만 승인 상태로 바꾼다
+        partner.hasRecordedResult = true; // 방금 평가현황 시트에 기록됐다 - 상단 탭 뱃지에 바로 반영된다
         if (data.spreadsheetId && data.sheetGid != null && data.row) {
           partner.sheetUrl = `https://docs.google.com/spreadsheets/d/${data.spreadsheetId}/edit#gid=${data.sheetGid}&range=A${data.row}`;
         }
@@ -1614,8 +1618,10 @@ function renderExamTypeSwitch() {
   });
 }
 
+
 /* ----------------------- 전체 다시 그리기 ----------------------- */
 function renderAll() {
+  renderDashboardTab();
   renderPartnersTab();
   renderAttendanceTab();
   renderExamSendTab();
@@ -1623,6 +1629,122 @@ function renderAll() {
   renderGradingTab();
   renderApprovalTab();
   renderPassListTab();
+}
+
+/* =========================================================================
+ * 0. 현황 - 선택한 달의 네 시험을 한 표로 모아 본다
+ * -------------------------------------------------------------------------
+ * 시험 종류가 넷으로 늘어나면서 탭을 일일이 돌지 않으면 그 달에 뭐가 밀려있는지
+ * 알 수 없어졌다. 여기서는 시험별로 신청 → 출석 → 응시 → 승인 → 합격까지
+ * 한 줄에 펼쳐 보여주고, 아직 처리할 게 남은 칸만 강조한다.
+ * 숫자를 누르면 그 시험의 해당 탭으로 바로 넘어간다.
+ *
+ * 모든 값은 이미 메모리에 있는 명단(state.partnersByExam)에서 계산한다 -
+ * 추가 조회가 없으므로 탭을 열 때마다 즉시 그려진다.
+ * ========================================================================= */
+const EXAM_TYPE_LABELS = {
+  NAC: 'NAC',
+  NAC_MID: 'NAC 중급',
+  EDR: 'EDR',
+  GPI: 'GPI',
+};
+
+/* 한 시험의 그 달 진행 상황을 센다.
+ *
+ * "미기록"을 (신청 - 결과 기록)으로 잡는 게 핵심이다. 응시 여부(examStatus)는
+ * 응시 확인 탭을 돌려야 값이 생겨서, 연동 직후에는 아무도 응시하지 않은 것으로
+ * 보인다. 그 상태로 "승인 대기"를 세면 방치된 신청자가 있어도 0으로 나와
+ * 다 끝난 것처럼 보인다 - 정확히 놓치기 쉬운 지점이다.
+ * 반면 결과 기록(hasRecordedResult)은 평가현황 시트를 조회해 채워지므로
+ * 연동 직후부터 바로 믿을 수 있다. */
+function summarizeExam(examType) {
+  const partners = state.partnersByExam[examType] || [];
+  const recorded = partners.filter((p) => p.hasRecordedResult);
+  return {
+    examType,
+    applied: partners.length,
+    present: partners.filter((p) => p.attendance === '출석').length,
+    recorded: recorded.length,
+    missing: partners.length - recorded.length,
+    passed: recorded.filter((p) => isPass(p.totalScore)).length,
+    failed: recorded.filter((p) => !isPass(p.totalScore)).length,
+  };
+}
+
+function renderDashboardTab() {
+  const container = document.getElementById('dashboardContent');
+  if (!container) return;
+
+  const summaries = EXAM_TYPES.map(summarizeExam);
+  const totalApplied = summaries.reduce((sum, s) => sum + s.applied, 0);
+
+  if (totalApplied === 0) {
+    renderEmptyState(container, `${state.selectedYear}년 ${state.selectedMonth}월 신청자가 없습니다. 'Google Sheets 연동'을 눌러 명단을 불러오세요.`);
+    return;
+  }
+
+  // 값이 0이면 흐리게, 처리할 일이 남아있으면 빨갛게. 클릭하면 그 시험의 해당 탭으로 이동한다.
+  const cell = (value, { tab, examType, warn = false, muted = false }) => {
+    if (value === 0 && !warn) {
+      return `<td class="dash-cell dash-zero">0</td>`;
+    }
+    const cls = `dash-cell${warn ? ' dash-warn' : ''}${muted ? ' dash-muted' : ''}`;
+    return `<td class="${cls}"><button type="button" class="dash-link" data-action="dash-goto" data-exam-type="${examType}" data-goto-tab="${tab}">${warn ? '!' : ''}${value}</button></td>`;
+  };
+
+  const rows = summaries.map((s) => {
+    if (s.applied === 0) {
+      return `
+        <tr class="dash-row-empty">
+          <th scope="row">${escapeHtml(EXAM_TYPE_LABELS[s.examType])}</th>
+          <td class="dash-cell dash-zero" colspan="6">이번 달 신청자 없음</td>
+        </tr>`;
+    }
+    return `
+      <tr>
+        <th scope="row">${escapeHtml(EXAM_TYPE_LABELS[s.examType])}</th>
+        ${cell(s.applied, { tab: 'partners', examType: s.examType })}
+        ${cell(s.present, { tab: 'attendance', examType: s.examType })}
+        ${cell(s.recorded, { tab: 'approval', examType: s.examType })}
+        ${cell(s.missing, { tab: 'approval', examType: s.examType, warn: s.missing > 0 })}
+        ${cell(s.passed, { tab: 'passList', examType: s.examType })}
+        ${cell(s.failed, { tab: 'passList', examType: s.examType, muted: true })}
+      </tr>`;
+  }).join('');
+
+  const totalMissing = summaries.reduce((sum, s) => sum + s.missing, 0);
+  const notice = totalMissing > 0
+    ? `<p class="dash-notice dash-notice-warn">결과가 아직 시트에 없는 신청자가 <strong>${totalMissing}명</strong> 있습니다. 미응시자도 여기 포함되니 확인이 필요합니다.</p>`
+    : `<p class="dash-notice">신청자 전원의 결과가 평가현황 시트에 기록되어 있습니다.</p>`;
+
+  container.innerHTML = `
+    <div class="dash-head">
+      <span class="dash-period">${state.selectedYear}년 ${state.selectedMonth}월</span>
+      ${notice}
+    </div>
+    <table class="data-table dash-table">
+      <thead>
+        <tr>
+          <th scope="col">시험</th>
+          <th scope="col">신청</th>
+          <th scope="col">출석</th>
+          <th scope="col">결과 기록</th>
+          <th scope="col">미기록</th>
+          <th scope="col">합격</th>
+          <th scope="col">불합격</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+/* 현황 표의 숫자를 누르면 그 시험으로 전환하면서 해당 탭을 연다 */
+function handleDashboardGoto(examType, tabName) {
+  if (examType && examType !== state.examType) {
+    switchExamType(examType);
+  }
+  switchTab(tabName);
 }
 
 /* ----------------------- 이벤트 위임 바인딩 ----------------------- */
@@ -1639,6 +1761,8 @@ function initEventDelegation() {
     if (action === 'approve') handleApprove(id);
     if (action === 'toggle-grading-detail') toggleGradingDetail(id);
     if (action === 'switch-exam-type') switchExamType(target.dataset.examType);
+    if (action === 'sync-sheets') handleSheetsSync();
+    if (action === 'dash-goto') handleDashboardGoto(target.dataset.examType, target.dataset.gotoTab);
     if (action === 'send-single-email') handleSendSingleEmail(id);
     if (action === 'download-certificate') handleDownloadCertificate(id);
     if (action === 'toggle-month-dropdown') {

@@ -60,7 +60,8 @@
 </header>
 
 <nav class="tab-nav" id="tabNav">
-  <button class="tab-btn active" data-tab="partners">파트너 목록</button>
+  <button class="tab-btn active" data-tab="dashboard">현황</button>
+  <button class="tab-btn" data-tab="partners">파트너 목록</button>
   <button class="tab-btn" data-tab="attendance">출석 체크</button>
   <button class="tab-btn" data-tab="formCreate">문제 폼 생성</button>
   <button class="tab-btn" data-tab="examSend">시험 발송</button>
@@ -72,7 +73,15 @@
 
 <main class="tab-content-wrap">
 
-  <section id="tab-partners" class="tab-panel active" data-tab-panel="partners">
+  <section id="tab-dashboard" class="tab-panel active" data-tab-panel="dashboard">
+    <div class="panel-header">
+      <h2>현황</h2>
+      <button id="dashboardSyncBtn" class="btn btn-primary" data-action="sync-sheets">Google Sheets 연동</button>
+    </div>
+    <div id="dashboardContent" class="panel-body"></div>
+  </section>
+
+  <section id="tab-partners" class="tab-panel" data-tab-panel="partners">
     <div class="panel-header">
       <h2>파트너 목록</h2>
       <button id="syncSheetsBtn" class="btn btn-primary">Google Sheets 연동</button>

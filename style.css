@@ -279,6 +279,89 @@ body {
   color: var(--on-ink);
 }
 
+/* ===================== 현황 탭 ===================== */
+.dash-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-md) 0;
+  flex-wrap: wrap;
+}
+
+.dash-period {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.dash-notice {
+  margin: 0;
+  font-size: 13px;
+  color: var(--graphite);
+}
+
+.dash-notice-warn {
+  color: var(--bloom-deep);
+}
+
+.dash-table th[scope='row'] {
+  font-weight: 600;
+  color: var(--ink);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.dash-table td.dash-cell {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 값이 0이라 굳이 들여다볼 필요가 없는 칸 */
+.dash-zero {
+  color: var(--steel);
+}
+
+.dash-row-empty td {
+  color: var(--graphite);
+  font-size: 13px;
+  text-align: center;
+}
+
+.dash-link {
+  appearance: none;
+  border: none;
+  background: none;
+  font-family: var(--font-family);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  padding: 4px 10px;
+  border-radius: var(--rounded-md);
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-link:hover {
+  background-color: var(--cloud);
+  color: var(--primary);
+}
+
+/* 아직 처리가 남은 칸 - 승인 대기 */
+.dash-warn .dash-link {
+  color: var(--bloom-deep);
+}
+
+.dash-warn .dash-link:hover {
+  background-color: var(--bloom-rose);
+  color: var(--bloom-wine);
+}
+
+/* 불합격처럼 참고용 숫자는 눈에 덜 띄게 */
+.dash-muted .dash-link {
+  color: var(--graphite);
+  font-weight: 600;
+}
+
 /* ===================== 탭 네비게이션 (nav-link) ===================== */
 .tab-nav {
   display: flex;
