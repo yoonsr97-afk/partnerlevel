@@ -39,6 +39,14 @@ function findTagRanges(xml, openTagPrefix, closeTag) {
 // 템플릿 원본의 결과 셀 색상 - 합격은 파랑(2F5496), 불합격은 빨강(C00000)으로 이미 스타일링되어 있다
 const RESULT_COLOR = { 합격: '2F5496', 불합격: 'C00000' };
 
+// 수료증에 찍히는 평가 종류 표기
+const EXAM_TYPE_LABELS = {
+  NAC: 'NAC 초급',
+  NAC_MID: 'NAC 중급',
+  EDR: 'EDR 초급',
+  GPI: 'GPI 초급',
+};
+
 /* 표의 데이터 행 1개(김철수 행)를 받아 실제 회사/이름/종류/점수/결과 값으로 치환한다 */
 function fillRow(templateRowXml, { company, name, typeLabel, score, result }) {
   let row = templateRowXml;
@@ -70,7 +78,9 @@ async function buildResultDocxBuffer({ company, examType, year, month, members }
   // rows[0] = 헤더(회사/이름/종류/점수/결과 라벨), rows[1]/rows[2] = 예시 데이터 행(김철수/김미영)
   const templateRow = tblXml.slice(rows[1][0], rows[1][1]);
 
-  const typeLabel = `${examType} 초급`;
+  // 수료증의 "종류" 칸 - 시험 종류가 곧 수준이다.
+  // 예전에는 "초급"이 하드코딩되어 있어 중급 응시자도 "NAC 초급"으로 찍혔다.
+  const typeLabel = EXAM_TYPE_LABELS[examType] || `${examType} 초급`;
   const newRowsXml = members
     .map((m) => fillRow(templateRow, { company, name: m.name, typeLabel, score: m.score, result: m.result }))
     .join('');

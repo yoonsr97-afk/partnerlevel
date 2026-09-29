@@ -209,10 +209,14 @@ async function generateAnswerKeyTemplate(formUrl, examType, formType) {
     const prev = prevObjective.get(normalizeQuestionTitle(q.title));
     if (!prev) return q;
     carriedOver++;
+    // 저장된 값이 "비어있음"이면 물려받지 않는다. 폼에 정답이 없어 빈 채로 저장됐다가
+    // 나중에 폼에서 정답을 채웠을 때, 빈 값이 새 정답을 덮어써버리기 때문이다.
+    const hasPrevAnswer = prev.correctAnswer != null && prev.correctAnswer !== '';
+    const hasPrevAnswers = Array.isArray(prev.correctAnswers) && prev.correctAnswers.length > 0;
     return {
       ...q,
-      correctAnswer: prev.correctAnswer != null ? prev.correctAnswer : q.correctAnswer,
-      correctAnswers: prev.correctAnswers != null ? prev.correctAnswers : q.correctAnswers,
+      correctAnswer: hasPrevAnswer ? prev.correctAnswer : q.correctAnswer,
+      correctAnswers: hasPrevAnswers ? prev.correctAnswers : q.correctAnswers,
       ...(prev.points != null ? { points: prev.points } : {}),
     };
   });

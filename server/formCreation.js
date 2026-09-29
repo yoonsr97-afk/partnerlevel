@@ -26,34 +26,40 @@ function extractFormId(value) {
  * ------------------------------------------------------------------------- */
 const EXAM_FORM_SPECS = {
   NAC: {
-    // 초급: 월 % 3 → A/B/C 순환  |  중급: 유형 없음 → 'MID' 고정
-    formTypeChar: (month, level) => {
-      if (level === '중급') return 'MID';
+    // 초급은 월 % 3 → A/B/C 순환
+    formTypeChar: (month) => {
       const r = month % 3;
       if (r === 1) return 'A';
       if (r === 2) return 'B';
       return 'C';
     },
-    // 폴더명: "NAC 초급(2026)" / "NAC 중급(2026)"
-    folderKeywords: (year, level) => [level === '중급' ? 'NAC 중급' : 'NAC 초급', String(year)],
-    // 파일명: "초급 평가문제 A형_260701_2026년 7월" / "중급 평가문제_260701_2026년 7월"
-    buildFormName: (year, month, typeChar, level) => {
+    // 폴더명: "NAC 초급(2026)"
+    folderKeywords: (year) => ['NAC 초급', String(year)],
+    // 파일명: "초급 평가문제 A형_260701_2026년 7월"
+    buildFormName: (year, month, typeChar) => {
       const yy = String(year).slice(-2);
       const mm = String(month).padStart(2, '0');
-      if (level === '중급') return `중급 평가문제_${yy}${mm}01_${year}년 ${month}월`;
       return `초급 평가문제 ${typeChar}형_${yy}${mm}01_${year}년 ${month}월`;
     },
     // Drive 1차 필터 (서버측)
-    driveNameKeyword: (month, level) => (level === '중급'
-      ? '중급 평가문제'
-      : `초급 평가문제 ${EXAM_FORM_SPECS.NAC.formTypeChar(month, level)}형`),
+    driveNameKeyword: (month) => `초급 평가문제 ${EXAM_FORM_SPECS.NAC.formTypeChar(month)}형`,
     // 2차 정밀 매칭 (클라이언트측) - 날짜 부분은 무시하고 유형/연월만 본다
-    matchesMonth: (name, year, month, level) => {
-      if (!name.includes(`${year}년 ${month}월`)) return false;
-      if (level === '중급') return name.includes('중급 평가문제');
-      return name.includes(`초급 평가문제 ${EXAM_FORM_SPECS.NAC.formTypeChar(month, level)}형`);
-    },
+    matchesMonth: (name, year, month) => name.includes(`${year}년 ${month}월`)
+      && name.includes(`초급 평가문제 ${EXAM_FORM_SPECS.NAC.formTypeChar(month)}형`),
     templateEnvKey: (formType) => `TEMPLATE_FORM_ID_NAC_${formType}`,
+  },
+  NAC_MID: {
+    // 중급은 유형 순환이 없다 (A형 하나)
+    formTypeChar: () => 'A',
+    // 폴더명: "NAC 중급(2026)"
+    folderKeywords: (year) => ['NAC 중급', String(year)],
+    // 파일명: "2026년 NAC중급 정기평가(A)_1월" - 초급과 달리 연도 뒤에 "년"이 붙는다
+    buildFormName: (year, month) => `${year}년 NAC중급 정기평가(A)_${month}월`,
+    driveNameKeyword: () => 'NAC중급 정기평가',
+    // "_01월"처럼 0이 붙은 과거 표기도 같이 받아준다
+    matchesMonth: (name, year, month) =>
+      new RegExp(`^${year}년?\\s*NAC중급\\s*정기평가\\s*\\([A-Z]\\)_0?${month}월$`).test(name.trim()),
+    templateEnvKey: () => 'TEMPLATE_FORM_ID_NAC_MID',
   },
   EDR: {
     // EDR은 A형 한 종류만 운영한다 (월별 A/B/C 순환 없음)

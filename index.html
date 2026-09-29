@@ -48,6 +48,7 @@
       <button class="btn btn-secondary btn-small" id="logoutBtn" data-action="logout">로그아웃</button>
     <div class="exam-type-switch" id="examTypeSwitch">
       <button class="exam-type-btn active" data-action="switch-exam-type" data-exam-type="NAC">NAC</button>
+      <button class="exam-type-btn" data-action="switch-exam-type" data-exam-type="NAC_MID">NAC 중급</button>
       <button class="exam-type-btn" data-action="switch-exam-type" data-exam-type="EDR">EDR</button>
       <button class="exam-type-btn" data-action="switch-exam-type" data-exam-type="GPI">GPI</button>
     </div>
@@ -90,10 +91,6 @@
   <section id="tab-examSend" class="tab-panel" data-tab-panel="examSend">
     <div class="panel-header">
       <h2>시험 발송</h2>
-      <div class="exam-type-switch" id="examSendLevelSwitch">
-        <button class="exam-type-btn active" data-action="set-exam-send-level" data-level="초급">초급</button>
-        <button class="exam-type-btn" data-action="set-exam-send-level" data-level="중급">중급</button>
-      </div>
       <button id="bulkSendExamBtn" class="btn btn-primary" disabled>선택 발송</button>
     </div>
     <div id="examSendContent" class="panel-body"></div>
@@ -125,10 +122,6 @@
   <section id="tab-formCreate" class="tab-panel" data-tab-panel="formCreate">
     <div class="panel-header">
       <h2>문제 폼 생성</h2>
-      <div class="exam-type-switch" id="formCreateLevelSwitch">
-        <button class="exam-type-btn active" data-action="set-form-level" data-level="초급">초급</button>
-        <button class="exam-type-btn" data-action="set-form-level" data-level="중급">중급</button>
-      </div>
       <button id="refreshFormStatusBtn" class="btn btn-secondary" data-action="refresh-form-status">상태 새로고침</button>
     </div>
     <div id="formCreateContent" class="panel-body"></div>

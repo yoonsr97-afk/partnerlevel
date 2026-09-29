@@ -200,12 +200,12 @@ async function initLogin() {
 }
 
 /* ----------------------- 전역 state ----------------------- */
-const EXAM_TYPES = ['NAC', 'EDR', 'GPI'];
+const EXAM_TYPES = ['NAC', 'NAC_MID', 'EDR', 'GPI'];
 
 const state = {
-  examType: 'NAC', // 'NAC' | 'EDR' | 'GPI' - 현재 화면에 표시 중인 시험 종류
-  partnersByExam: { NAC: [], EDR: [], GPI: [] }, // Google Sheets 연동 이후 채워지는 단일 데이터 소스 (신청자 명단은 실데이터, 채점 점수는 아직 더미)
-  resultSheetUrlByExam: { NAC: null, EDR: null, GPI: null }, // 평가현황 시트 URL (examType별)
+  examType: 'NAC', // EXAM_TYPES 중 하나 - 현재 화면에 표시 중인 시험 종류
+  partnersByExam: { NAC: [], NAC_MID: [], EDR: [], GPI: [] }, // Google Sheets 연동 이후 채워지는 단일 데이터 소스 (신청자 명단은 실데이터, 채점 점수는 아직 더미)
+  resultSheetUrlByExam: { NAC: null, NAC_MID: null, EDR: null, GPI: null }, // 평가현황 시트 URL (examType별)
   isSyncing: false,
   selectedMonth: new Date().getMonth() + 1, // 1~12 - 헤더의 월 선택 드롭다운에서 고른 조회 대상 월
   selectedYear: new Date().getFullYear(), // 같은 월이라도 연도가 다르면 다른 신청 건이므로 항상 같이 사용
@@ -305,7 +305,11 @@ function fetchFromSheets(examType) {
     });
 }
 
-let examSendLevel = '초급'; // '초급' | '중급' - 시험 발송 탭에서 선택
+// 평가 수준은 시험 종류가 결정한다 (NAC 중급 탭만 중급). 서버도 examType으로 다시 정하므로
+// 여기 값은 화면 표시용이다.
+function currentLevel() {
+  return state.examType === 'NAC_MID' ? '중급' : '초급';
+}
 
 /* 시험 발송 - server/mailer.js 가 시험 종류(NAC/EDR)·수준(초급/중급)에 맞는 안내 메일을 한 명씩 발송한다.
  * 서버에서 공유 드라이브를 탐색해 해당 월 폼 URL을 자동으로 메일에 포함한다. */
@@ -317,7 +321,7 @@ function sendExamLinks(examType, targetPartners) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       examType,
-      level: examSendLevel,
+      level: currentLevel(),
       year: state.selectedYear,
       month: state.selectedMonth,
       recipients: targetPartners.map((p) => ({ name: p.name, email: p.email })),
@@ -391,7 +395,7 @@ function fetchGradeFromForm(formUrl, skipSubjectiveGrading = false) {
       year: state.selectedYear,
       month: state.selectedMonth,
       examType: state.examType,
-      level: examSendLevel,
+      level: currentLevel(),
       formUrl: formUrl || null,
       partners,
       skipSubjectiveGrading,
@@ -1007,7 +1011,7 @@ async function handleRefreshExamCheck() {
   if (btn) { btn.disabled = true; btn.textContent = '조회 중...'; }
 
   // 시험 발송 탭 레벨과 동일한 레벨로 조회 (초급/중급)
-  const level = examSendLevel;
+  const level = currentLevel();
 
   try {
     const result = await fetchExamCheckMatch(level);
@@ -1258,14 +1262,14 @@ function handleEditSubjectiveMemo(id, qIndex, value) {
  * 6. 문제 폼 생성
  * ========================================================================= */
 let formCreateCache = null;
-let formCreateLevel = '초급'; // '초급' | '중급'
+
 
 function apiKey() {
   return encodeURIComponent(SHEETS_ACCESS_KEY);
 }
 
 async function fetchExamFormStatus() {
-  const url = `${SHEETS_API_BASE_URL}/api/exam-forms/status?key=${apiKey()}&year=${state.selectedYear}&month=${state.selectedMonth}&level=${encodeURIComponent(formCreateLevel)}&examType=${state.examType}`;
+  const url = `${SHEETS_API_BASE_URL}/api/exam-forms/status?key=${apiKey()}&year=${state.selectedYear}&month=${state.selectedMonth}&level=${encodeURIComponent(currentLevel())}&examType=${state.examType}`;
   return apiFetch(url);
 }
 
@@ -1274,7 +1278,7 @@ async function fetchCreateExamForm() {
   return apiFetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ year: state.selectedYear, month: state.selectedMonth, level: formCreateLevel, examType: state.examType }),
+    body: JSON.stringify({ year: state.selectedYear, month: state.selectedMonth, level: currentLevel(), examType: state.examType }),
   });
 }
 
@@ -1597,8 +1601,8 @@ function switchExamType(examType) {
   downloadingCertificateIds.clear(); // 수료증 다운로드 진행 표시도 초기화 (id가 NAC/EDR 간 겹칠 수 있어서)
   gradingAutoSyncDone = false;
   gradingAiDone = false;
+  formCreateCache = null; // 폼 상태는 시험 종류마다 다르다 - 안 비우면 이전 시험의 폼이 그대로 보인다
   renderExamTypeSwitch();
-  renderLevelSwitches();
   renderAll();
 }
 
@@ -1607,26 +1611,6 @@ function renderExamTypeSwitch() {
   // (전체를 대상으로 하면 dataset.examType이 없는 레벨 버튼의 active가 매번 벗겨진다)
   document.querySelectorAll('[data-action="switch-exam-type"]').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.examType === state.examType);
-  });
-}
-
-/* EDR과 GPI는 초급 과정만 운영한다 - 중급 버튼을 숨기고 선택도 초급으로 되돌린다.
- * 그냥 두면 "Genian EDR 중급" 같은 존재하지 않는 평가명으로 안내 메일이 나갈 수 있다. */
-function renderLevelSwitches() {
-  const edrOnlyBasic = state.examType === 'EDR' || state.examType === 'GPI';
-
-  if (edrOnlyBasic) {
-    examSendLevel = '초급';
-    formCreateLevel = '초급';
-  }
-
-  document.querySelectorAll('[data-action="set-exam-send-level"]').forEach((btn) => {
-    if (btn.dataset.level === '중급') btn.hidden = edrOnlyBasic;
-    btn.classList.toggle('active', btn.dataset.level === examSendLevel);
-  });
-  document.querySelectorAll('[data-action="set-form-level"]').forEach((btn) => {
-    if (btn.dataset.level === '중급') btn.hidden = edrOnlyBasic;
-    btn.classList.toggle('active', btn.dataset.level === formCreateLevel);
   });
 }
 
@@ -1662,25 +1646,9 @@ function initEventDelegation() {
       toggleMonthDropdown();
     }
     if (action === 'select-month') selectMonth(target.dataset.month);
-    // 시험 발송 - 초급/중급 선택
-    if (action === 'set-exam-send-level') {
-      examSendLevel = target.dataset.level;
-      document.querySelectorAll('[data-action="set-exam-send-level"]').forEach((btn) => {
-        btn.classList.toggle('active', btn.dataset.level === examSendLevel);
-      });
-    }
     // 채점 관련
     if (action === 'manual-sync-grading') handleAutoSyncGrading();
     if (action === 'grade-from-form') handleGradeFromForm();
-    // 문제 폼 생성 관련
-    if (action === 'set-form-level') {
-      formCreateLevel = target.dataset.level;
-      document.querySelectorAll('[data-action="set-form-level"]').forEach((btn) => {
-        btn.classList.toggle('active', btn.dataset.level === formCreateLevel);
-      });
-      formCreateCache = null;
-      handleRefreshFormStatus();
-    }
     if (action === 'refresh-exam-check') handleRefreshExamCheck();
     if (action === 'refresh-form-status') handleRefreshFormStatus();
     if (action === 'create-exam-form') handleCreateExamForm();
@@ -1726,7 +1694,6 @@ async function init() {
   renderCurrentMonth();
   renderMonthDropdown();
   renderExamTypeSwitch();
-  renderLevelSwitches();
   initTabNav();
   initEventDelegation();
   renderAll();

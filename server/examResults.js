@@ -194,6 +194,17 @@ const RESULT_SHEETS = {
     // EDR은 A형 한 종류뿐이다 (NAC처럼 월별로 A/B/C를 돌리지 않는다)
     fixedFormType: 'A',
   },
+  NAC_MID: {
+    spreadsheetId: process.env.RESULTS_SPREADSHEET_ID_NAC_MID || process.env.RESULTS_SPREADSHEET_ID_NAC,
+    label: 'NAC 중급',
+    // 중급은 "{연도} 파트너 평가현황(NAC 중급)" 전용 탭을 쓴다
+    sheetNamePattern: (year) => new RegExp(`^${year}\\s*파트너\\s*평가현황\\s*\\(\\s*NAC\\s*중급\\s*\\)$`),
+    sheetNameExample: (year) => `${year} 파트너 평가현황(NAC 중급)`,
+    // 첫 블록(A~Y)의 배치가 초급 탭과 똑같다 - P 헤더만 "NAC중급 접수"로 다르다
+    resolveColumns: () => NAC_COL,
+    buildRow: buildNacMidRow,
+    fixedFormType: 'A',
+  },
   GPI: {
     spreadsheetId: process.env.RESULTS_SPREADSHEET_ID_GPI || process.env.RESULTS_SPREADSHEET_ID_NAC,
     label: 'GPI 초급',
@@ -355,6 +366,9 @@ const SUBJECTIVE_SCORE_MULTIPLIER = 4;
 const asText = (value) => (value ? `'${value}` : '');
 // 점수 ÷ 배율로 역산한 정답 개수는 소수점이 길게 나올 수 있어(예: 32/1.5=21.333...) 1자리로 반올림한다
 const round1 = (value) => Math.round(value * 10) / 10;
+// 중급은 주관식 부분점수가 0.25 단위로 나와서(예: 17.75) 1자리로 반올림하면 총점이 뭉개진다.
+// 부동소수점 오차만 걷어내고 값은 그대로 두기 위해 2자리를 쓴다.
+const round2 = (value) => Math.round(value * 100) / 100;
 
 function buildTimestamp() {
   const now = new Date();
@@ -477,6 +491,62 @@ function buildEdrRow({ data, columns, sheetName }) {
     values,
     formType: RESULT_SHEETS.EDR.fixedFormType,
     alignments,
+  };
+}
+
+/* -------------------------------------------------------------------------
+ * NAC 중급 행 생성 - 전용 탭("{연도} 파트너 평가현황(NAC 중급)")의 A~Y에 쓴다.
+ *
+ * 컬럼 배치는 초급 탭과 같지만 두 가지가 다르다.
+ *  - 총점수(V)/결과(W)에 수식이 없다. 실제 행이 값으로만 채워져 있어서 직접 계산해 넣는다.
+ *  - 배점이 객관식·주관식 모두 문항당 2점이다 (객관식 40문항 80점 + 주관식 10문항 20점).
+ *    시트의 "객관식"/"주관식" 칸은 정답 개수라서 점수를 2로 나눠 역산한다.
+ * ------------------------------------------------------------------------- */
+const NAC_MID_OBJECTIVE_MULTIPLIER = 2;
+const NAC_MID_SUBJECTIVE_MULTIPLIER = 2;
+
+function buildNacMidRow({ data }) {
+  const objectiveScore = Number(data.objectiveScore) || 0;
+  const subjectiveScore = Number(data.subjectiveScore) || 0;
+  const totalScore = round2(objectiveScore + subjectiveScore);
+
+  const values = [
+    buildTimestamp(), // A 타임스탬프
+    data.email || '', // B 이메일 주소
+    '', // C 제조사 동영상 교육 수강 여부 - 앱이 모르는 값
+    data.itemSelection || '', // D 평가 항목 선택
+    `${data.month}월`, // E 평가 월 선택
+    data.company || '', // F 파트너명
+    '', // G 파트너명(위에 미존재시 작성)
+    data.department || '', // H 평가자 (소속 부서)
+    data.name || '', // I 평가자명
+    data.position || '', // J 평가자 직급
+    asText(data.phone), // K 평가자 (휴대전화 번호)
+    '', '', '', // L M N - 기술책임자 관련, 앱이 모르는 값
+    asText(data.jiraId), // O JIRA 계정 ID
+    'O', // P NAC중급 접수
+    RESULT_SHEETS.NAC_MID.fixedFormType, // Q 시험 유형
+    data.objectiveCorrectCount != null
+      ? data.objectiveCorrectCount
+      : round2(objectiveScore / NAC_MID_OBJECTIVE_MULTIPLIER), // R 객관식 정답 개수
+    objectiveScore, // S 객관식 점수
+    round2(subjectiveScore / NAC_MID_SUBJECTIVE_MULTIPLIER), // T 주관식 정답 개수(점수 역산)
+    subjectiveScore, // U 주관식 점수
+    totalScore, // V 총점수 (값 - 이 탭에는 수식이 걸려있지 않다)
+    totalScore >= PASSING_SCORE ? '합격' : '불합격', // W 결과 (값)
+    '', // X 계정발급 - 비워둠
+    '', // Y 계정갱신 - 비워둠
+  ];
+
+  return {
+    startColumnIndex: 0,
+    values,
+    formType: RESULT_SHEETS.NAC_MID.fixedFormType,
+    // 초급 탭과 동일하게: B~O 왼쪽 정렬, P~Y 가운데 정렬
+    alignments: [
+      { start: 1, end: 15, horizontalAlignment: 'LEFT' },
+      { start: 15, end: 25, horizontalAlignment: 'CENTER' },
+    ],
   };
 }
 

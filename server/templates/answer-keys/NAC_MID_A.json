@@ -1,0 +1,647 @@
+{
+  "examType": "NAC_MID",
+  "formType": "A",
+  "formId": "1kFx6uMTiNlXv9C-SjsoIDMxlZoFtUkvvy7juxKGr6sM",
+  "pointsPerObjective": 1.5,
+  "nameQuestionId": "719942a9",
+  "_note": [
+    "객관식 RADIO: correctAnswer 에 정답 선택지 텍스트를 그대로 입력",
+    "객관식 CHECKBOX: correctAnswers 배열에 정답 선택지 텍스트들을 입력",
+    "객관식 배점이 문항마다 다르면 해당 문항에 \"points\": 2 처럼 직접 지정 (없으면 pointsPerObjective 적용)",
+    "주관식: modelAnswer 와 rubric(채점기준) 입력, maxScore 수정 가능"
+  ],
+  "objectiveQuestions": [
+    {
+      "questionId": "2a8c57b4",
+      "title": "1.\tBonding 상태 확인 명령어로 바른 것은?",
+      "type": "RADIO",
+      "options": [
+        "① genian# show interface bond0",
+        "② GeniNetworks$ cat /var/run/boning/bond0",
+        "③ GeniNetworks$ cat /proc/net/bonding/bond0",
+        "④ GeniNetworks$ ifconfig bond0"
+      ],
+      "correctAnswer": "③ GeniNetworks$ cat /proc/net/bonding/bond0",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "7bbe6dfc",
+      "title": "2.\tCrond에 대한 설명으로 틀린 것은?",
+      "type": "RADIO",
+      "options": [
+        "① 리눅스용 작업 스케줄러이다.",
+        "② 특정 명령 및 스크립트를 주기에 맞추어 실행주는 데몬이다.",
+        "③ 수행할 작업은 crond 데몬에 포함하여야 되기 때문에 alder stop후 설정한다.",
+        "④ NAC는 Shell모드에서만 설정 가능하며, 수작업으로 할 수 있는 대부분의 작업을 실행할 수 있다."
+      ],
+      "correctAnswer": "③ 수행할 작업은 crond 데몬에 포함하여야 되기 때문에 alder stop후 설정한다.",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "4e11e271",
+      "title": "3.\tgenian shell 모드의 'show data-server replicastatus' 명령에 대한 설명중 옳은 것을 고르시오",
+      "type": "RADIO",
+      "options": [
+        "① DB 이중화 설정이 되어있지 않는다면 'Dataserver replication not enabled' 메시지가 표시된다.",
+        "② PrimaryDB와 Secondary DB의 replication 상태를 확인 할 수 있다.",
+        "③ Slave IO running과 SQL running 상태가 No라면 정상적인 상태이다.",
+        "④ Error 항목에 표시된 에러가 있다면 replicaiton crash의 원인이 될 수 있다."
+      ],
+      "correctAnswer": "① DB 이중화 설정이 되어있지 않는다면 'Dataserver replication not enabled' 메시지가 표시된다.",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "4e4d6e21",
+      "title": "4.\tNAC에서 사용하는 script들이 존재하는 디렉토리를 고르시오",
+      "type": "RADIO",
+      "options": [
+        "① /proc/nac",
+        "② /mnt/bin",
+        "③ /usr/geni/tools",
+        "④ /etc/init.d"
+      ],
+      "correctAnswer": "③ /usr/geni/tools",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "58780e58",
+      "title": "5.\t다음은 고객사 담당자가 IP관리기능을 사용할때 요구하는 기능들이다 수용 가능한 항목으로 짝 지어진것을 고르시오",
+      "type": "RADIO",
+      "options": [
+        "① ㄱ-ㄷ-ㅁ",
+        "② ㄴ-ㄹ-ㅁ",
+        "③ ㄱ-ㄴ-ㄷ-ㄹ",
+        "④ 모두 수용"
+      ],
+      "correctAnswer": "④ 모두 수용",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "0fd18212",
+      "title": "6.\t감사 > 로그화면에서 검색필터 생성할 때 출력가능한 컬럼이 아닌것을 고르시오",
+      "type": "RADIO",
+      "options": [
+        "① 시간 - 로그종류 - 로그ID",
+        "② 관리장비명 - 관리센서명 - IP",
+        "③ MAC - 사용자ID - 사용자명",
+        "④ 부서명 - 설명 - 추가정보"
+      ],
+      "correctAnswer": "② 관리장비명 - 관리센서명 - IP",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "3e64b095",
+      "title": "7.\tNAC v5.0은 타솔루션에서 전송한 SYSLOG 메시지를 감사기록으로 저장이 가능하다해당 기능을 사용하기 위해 설정하는 항목이 아닌 것을 고르시오",
+      "type": "RADIO",
+      "options": [
+        "① 필터값",
+        "② IP 키값",
+        "③ 노드키 값",
+        "④ 문자셋"
+      ],
+      "correctAnswer": "③ 노드키 값",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "2b32fe1a",
+      "title": "8.\t프로젝트 구축 시 IP관리 정책 중 ‘신규노드 정책’ 적용 가이드가 잘못된 것은?",
+      "type": "RADIO",
+      "options": [
+        "① 고정 IP를 사용하는 고객사에서 ‘MAC/IP 차단모드’를 권고했다.",
+        "② DHCP를 사용하는 고객사에 ‘MAC/IP 차단모드’를 권고했다.",
+        "③ IP신청 시스템이 존재하는 고객사에 ‘MAC/IP 차단모드’를 권고했다.",
+        "④ 1인 IP사용만 허용된 고객사에 ‘MAC/IP 차단모드’를 권고했다."
+      ],
+      "correctAnswer": "",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "035ccdc7",
+      "title": "9.\t다음중 관리자설정의 API키를 설정하는 화면이다. API키 사용처가 아닌곳은?",
+      "type": "RADIO",
+      "options": [
+        "① 감사 리포트의 대시보드 리포트 생성시 사용된다",
+        "② genian api 연동시 사용된다",
+        "③ InsightsE제품 연동시 사용된다",
+        "④ GPI제품 연동시 사용된다"
+      ],
+      "correctAnswer": "④ GPI제품 연동시 사용된다",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "465c6c96",
+      "title": "10.\t다음중 ADV페이지에서 관리역할 커스터마이징에 대한 설명중 틀린 것을 고르시오",
+      "type": "RADIO",
+      "options": [
+        "① 시스템 기본 관리역할 외 다른 용도의 역할을 사용하고자 할때 만들어 사용한다",
+        "② 시스템관리,  글로벌설정, 관리자계정 설정 권한을 수정할 수 있다.",
+        "③ 항목에 대한 권한의 종류는 Read only, edit, add-edit, full-control이 있다.",
+        "④ 권한이 없는 페이지에 접근시 system error가 발생한다."
+      ],
+      "correctAnswer": "④ 권한이 없는 페이지에 접근시 system error가 발생한다.",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "50729bca",
+      "title": "11.\t아래 그림은 CWP 템플릿 생성화면이다. 다음  설명중 틀린 것을 고르시오",
+      "type": "RADIO",
+      "options": [
+        "① IP사용신청버튼, 승인확인버튼, 노드상태 메시지 항목은 On/Off 가 가능하다.",
+        "② 페이지의 테마는 여러가지로 타입으로 변경이 가능하다.",
+        "③ HTML을 수정하여 페이지 커스터 마이징이 가능하다.",
+        "④ CSS 스타일을 수정하여 페이지 커스터 마이징이 가능하다."
+      ],
+      "correctAnswer": "② 페이지의 테마는 여러가지로 타입으로 변경이 가능하다.",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "7d9ce49b",
+      "title": "12.\t다음 중 CWP 페이지에 대한 설명으로 옳지 않은 것을 고르시오.",
+      "type": "RADIO",
+      "options": [
+        "① 제어정책과 노드그룹 모두 CWP메시지가 설정되어 있는 경우, 제어정책 CWP 메시지가 상단에 출력된다.",
+        "② 템플릿 설정 페이지에서는 HTML 코드를 이용하여 페이지 커스터 마이징이 가능하다.",
+        "③ CWP 페이지 Language 메뉴는 설정에 따라 On/Off 할 수 있으며, 관리UI를 통해 특정 언어만 지원 가능하도록 정할 수 있다.",
+        "④ 접속인증페이지(CWP)설정의 메시지관리메뉴의 메시지를 커스텀하게 수정할 경우 최대 글자수는 8Kbyte 이다."
+      ],
+      "correctAnswer": "④ 접속인증페이지(CWP)설정의 메시지관리메뉴의 메시지를 커스텀하게 수정할 경우 최대 글자수는 8Kbyte 이다.",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "26b35c2f",
+      "title": "13.\t아래의 보기는 Crond 수행 주기 설정을 위한 등록 형식이다. 네모박스 안의 별표의 의미에 대한 설명으로 옳은 것은?",
+      "type": "RADIO",
+      "options": [
+        "① 매 04시에 1번 test.sh를 수행, 미수행 시 1~5회까지 재시도",
+        "② 1월~5월까지 매 1일날만 04시에 test.sh 수행",
+        "③ 1월달만 월~금요일까지 매 04시에 test.sh 수행",
+        "④ 매 04시부터 1분 간격으로 5회 tet.sh 수행"
+      ],
+      "correctAnswer": "③ 1월달만 월~금요일까지 매 04시에 test.sh 수행",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "245aff35",
+      "title": "14.\tB서버가 이중화가 되어있다. DB서버의 MASTER(ha group 20) 장비임을 확인할 수 있는 방법이 아닌 것은?",
+      "type": "RADIO",
+      "options": [
+        "① Virtual-ip로 SSH 접속해 본다.",
+        "② ifconfig로 MAC정보를 확인해본다.",
+        "③ /var/run/ha_20_eth0.stat 파일의 내용을 확인한다.",
+        "④ genian# show ha status 명령어를 통해 Master/Slave 장비를 확인한다."
+      ],
+      "correctAnswer": "① Virtual-ip로 SSH 접속해 본다.",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "20a70577",
+      "title": "15.\t미러링 센서의 Early Role에 대한 설명으로 옳지 않은 것을 고르시오.",
+      "type": "RADIO",
+      "options": [
+        "① Early Role은 정책 적용 전 단계에 적용가능한 정책을 의미함",
+        "② Early Role을 확인하는 파일은 /click/SENSOR_ethx.x/SENSOR_MOD/FILTER/earlyrolelist 이다.",
+        "③ 미러링 센서는 사용자에서 발생된 패킷을 수신하게 되면 먼저 earlyrole을 적용한다.",
+        "④ Early Role은 주체를 정의한 노드그룹의 조건이 IP일 경우 사용 가능하다."
+      ],
+      "correctAnswer": "③ 미러링 센서는 사용자에서 발생된 패킷을 수신하게 되면 먼저 earlyrole을 적용한다.",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "5bbde352",
+      "title": "16.\t에이전트가 설치된 노드의 상세화면에서 정책현황탭에 존재하지 않는 항목을 고르시오",
+      "type": "RADIO",
+      "options": [
+        "① 제어정책",
+        "② 위험감지",
+        "③ 액션 수행결과 현황",
+        "④ 시스템정보"
+      ],
+      "correctAnswer": "④ 시스템정보",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "77950678",
+      "title": "17.\t차단센서에서는 단말을 제어하는 방법으로 Redirection+Drop 방식과 Redirection+Reject 2가지가 존재하는데 설명으로 틀린것을 고르시오",
+      "type": "RADIO",
+      "options": [
+        "① Redirection은 차단된 단말이 Web접속시도시 차단페이지로 이동시키는 기술이다.",
+        "② Drop은 차단된 노드의 트래픽이 센서로 오게되면  센서에서는 해당 패킷을 포워딩 시키지 않고 드롭한다.",
+        "③ Reject는 차단된 노드의 트래픽이 TCP인 경우 RST패킷을 전송한다.",
+        "④ Reject는 차단된 노드의 트래픽이 UDP인 경우 아무런 동작을 하지 않는다."
+      ],
+      "correctAnswer": "④ Reject는 차단된 노드의 트래픽이 UDP인 경우 아무런 동작을 하지 않는다.",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "03a9c9b9",
+      "title": "18.\t다음은 고객사 NAC 담당자의 요청이다. 요청사항을 읽고 가장먼저 조치해야 지원사항을 고르시오",
+      "type": "RADIO",
+      "options": [
+        "① 충돌보호 위반 노드들을 노드그룹으로 만들어 제공해준다.",
+        "② adv 페이지를 통해 GARP 패킷으로 노드 등록이 되도록 설정한다.",
+        "③ 변경금지 위반 노들들을 노드그룹으로 만들어 제공해 준다",
+        "④ 감사로그에서 충돌보호 위반 감사로그를 필터로 만들어 제공한다"
+      ],
+      "correctAnswer": "② adv 페이지를 통해 GARP 패킷으로 노드 등록이 되도록 설정한다.",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "770d8b0d",
+      "title": "19.\tV4.0 버전에서 V5.0버전으로 업그레이드를 진행하였다, MySQL LOG2를 Elasticsearch로 이관하는 명령어는?",
+      "type": "RADIO",
+      "options": [
+        "① log2restore.sh",
+        "② log2migration.sh",
+        "③ migration.sh",
+        "④ logmigration.sh."
+      ],
+      "correctAnswer": "② log2migration.sh",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "21a06eba",
+      "title": "20.\t다음중 Elasticsearch에서 사용하는 서비스 포트를 고르시오",
+      "type": "RADIO",
+      "options": [
+        "① TCP/9200",
+        "② TCP/3870",
+        "③ UDP/3871",
+        "④ TCP/443"
+      ],
+      "correctAnswer": "① TCP/9200",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "538d3aba",
+      "title": "21.\t다음의 Mysql Replication 구성 형태를 기술한 것이다. 옳은 프로세스대로 나열한 것을 고르시오",
+      "type": "RADIO",
+      "options": [
+        "① a -> b -> c -> d",
+        "② b -> a -> c -> d",
+        "③ c -> a -> b -> d",
+        "④ d -> b -> a -> c"
+      ],
+      "correctAnswer": "③ c -> a -> b -> d",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "0423a541",
+      "title": "22.\t고객 PC를 사용하여 View 테이블을 생성하고자 한다. PC보안 정책에 의해 별도의 프로그램을 실행할 수 없는 환경에서 putty를 통해 SSH 접속만 가능하다.                                                                           [view 테이블명: TEST / 출력 정보: USER 테이블의 USER_ID, USER_PASSWORD]다음 중 View 테이블을 생성하는 방법으로 옳은 것을 고르시오.",
+      "type": "RADIO",
+      "options": [
+        "① mysql> create view TEST as USER(‘USER_ID’, ’USER_PASSWORD’);",
+        "② mysql> create view TEST from USER(USER_ID, USER_PASSWORD);",
+        "③ mysql> create view TEST as select USER_ID, USER_PASSWORD from USER;",
+        "④ mysql> create view TEST as select USER where USER_ID, USER_PASSWORD"
+      ],
+      "correctAnswer": "③ mysql> create view TEST as select USER_ID, USER_PASSWORD from USER;",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "7eb8011e",
+      "title": "23.\tGenian API 사용 범위 중 해당 되지 않은 것은?",
+      "type": "RADIO",
+      "options": [
+        "① IP 신청 관리",
+        "② 제어 정책 관리",
+        "③ 사용자 계정 관리",
+        "④ 노드 그룹 관리"
+      ],
+      "correctAnswer": "② 제어 정책 관리",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "0c82e2b6",
+      "title": "24.\t외부인증 연동 시 GnExLib.exe의 실행 옵션 중 “auth_r” 옵션의 사용용도로 맞지 않은 것은?",
+      "type": "RADIO",
+      "options": [
+        "① 사용자가 NAC인증 후 즉시 외부 인증 연동솔루션도 인증 처리 되도록 설정 할 경우",
+        "② 외부 인증연동 프로그램이 인증 이벤트 수신 시에만 동작 할 경우",
+        "③ 윈도우 부팅 시 마다 NAC인증 상태 정보를 외부 인증연동 솔루션으로 전송이 필요 할 경우",
+        "④ 외부 인증 연동솔루션에서 주기적으로 NAC인증 상태를 요청 할 경우"
+      ],
+      "correctAnswer": "② 외부 인증연동 프로그램이 인증 이벤트 수신 시에만 동작 할 경우",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "0130b8af",
+      "title": "25.\t무선랜AP접속을 제한할 수 있는 방법이 아닌것을 고르시오",
+      "type": "RADIO",
+      "options": [
+        "① 무선랜제어 노드액션을 사용하여 제어한다.",
+        "② 제어정책으로 노드를 차단한다.",
+        "③ Air sentry를 이용하여 접속을 차단한다.",
+        "④ 인터페이스제어 액션을 사용하여 무선랜 어댑터를 사용안함으로 변경한다."
+      ],
+      "correctAnswer": "② 제어정책으로 노드를 차단한다.",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "7abbb0f5",
+      "title": "26.\t무선랜제어 노드액션을 사용하여 무선AP접속을 차단하려고 한다. 다음중 허용할 AP검색 방법이 아닌것을 고르시오",
+      "type": "RADIO",
+      "options": [
+        "① 허용 무선랜그룹",
+        "② 허용 SSID",
+        "③ 허용 BSSID",
+        "④ 허용 SSID-정규식"
+      ],
+      "correctAnswer": "③ 허용 BSSID",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "5226c0cf",
+      "title": "27.\t아래는 고객사에서 NAC 프로젝트를 진행하는 도중 고객사의 환경을 전달받은 내용이다아래 내용을 보고 고객사에 가장 적합한 인증 방식을 고르시오",
+      "type": "RADIO",
+      "options": [
+        "① 정직원 : LDAP, 외부인원 : Local",
+        "② 정직원 : POP3, 외부인원 : AD",
+        "③ 정직원 : LDAP, 외부인원 : LDAP",
+        "④ 정직원 : LDAP, 외부인원 : RADIUS"
+      ],
+      "correctAnswer": "① 정직원 : LDAP, 외부인원 : Local",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "07b2e7dd",
+      "title": "28.\t다음중 비밀번호 인증방법에 해당하는 인증방식이 아닌 것은?",
+      "type": "RADIO",
+      "options": [
+        "① Local DB",
+        "② Radius",
+        "③ Active directory",
+        "④ POP3"
+      ],
+      "correctAnswer": "③ Active directory",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "698cc065",
+      "title": "29.\t다음 중 ADV페이지 항목의 설명으로 틀린 것을 고르시오",
+      "type": "RADIO",
+      "options": [
+        "① (1) 전용런처를 사용하면 접속자의 IP와 MAC정보를 수집할 수 있다.",
+        "② (8) 노드 플랫폼 Link URL은 5.0제품에서 생긴 DPI정보를 표시하기 위한 설정이다.",
+        "③ (16) 센서시스템 정보수집주기는 Default 20분 이다.",
+        "④ (20) Keepalive 전송 시점은 AGENT의 Keepalive 전송시점을 말한다."
+      ],
+      "correctAnswer": "③ (16) 센서시스템 정보수집주기는 Default 20분 이다.",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "7125ad33",
+      "title": "30.\t다음중 ADV페이지 항목중 감사로그에 가장 관련된 항목으로 짝지어진것을 고르시오",
+      "type": "RADIO",
+      "options": [
+        "① (4), (7), (17), (18)",
+        "② (16), (17), (18), (19)",
+        "③ (14), (17), (18), (19)",
+        "④ (7), (17), (18)"
+      ],
+      "correctAnswer": "③ (14), (17), (18), (19)",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "5c21a340",
+      "title": "31.\tNAC v5.0에서는 에이전트의 무결성 체크를 관리UI에서 제공하고 있다.  Agent에서 무결성체크를 무결성 검사의 기준이 되는 값을 가지고 있는 파일의 이름을 고르시오",
+      "type": "RADIO",
+      "options": [
+        "① libeay32.dll",
+        "② Genian.gnc",
+        "③ Verify.gnc",
+        "④ ActionU.gnc"
+      ],
+      "correctAnswer": "③ Verify.gnc",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "4d7b48f1",
+      "title": "32.\t다음 중 Agent debugging에 대한 설명으로 옳지 않은 것은?",
+      "type": "RADIO",
+      "options": [
+        "① 레지스트 값 중 Genian\\Option KEY에서 debugprint 문자열 값을 1로 생성하여야 한다.",
+        "② 레지스트리 debugprint 문자열 생성 후 에이전트를 재구동 하여야 한다.",
+        "③ debugview 사용 시 에이전트 설치 및 동작 상태 확인, 연동프로그램 호출 여부에 대한 정보를 얻을 수 있다.",
+        "④ debugview 필터 설정 시 Exclude 값에 genian*; gn* 값을 설정하여야 한다."
+      ],
+      "correctAnswer": "④ debugview 필터 설정 시 Exclude 값에 genian*; gn* 값을 설정하여야 한다.",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "10068f7b",
+      "title": "33.\t다음중 노드정책내 세부정책이 아닌 사항을 고르시오",
+      "type": "RADIO",
+      "options": [
+        "① 인증정책",
+        "② 에이전트정책",
+        "③ 감사정책",
+        "④ 관리정책"
+      ],
+      "correctAnswer": "③ 감사정책",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "2331677f",
+      "title": "34.\t다음은 노드정책내 관리정책의 항목이 아닌것은?",
+      "type": "RADIO",
+      "options": [
+        "① Design Template",
+        "② 비활성노드삭제",
+        "③ IP변경노드 삭제",
+        "④ 신규노드 호스트명 제한"
+      ],
+      "correctAnswer": "③ IP변경노드 삭제",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "74c86778",
+      "title": "35.\t아래는 필수소프트웨어(백신)이 미설치된 단말에 대한 권한이다. 백신이 설치되지 않은 사람은 내부네트워크 접근은 불가능하며 백신서버와 인터넷 사용만 가능하다.위 조건에 충족하는 올바른 권한은 무엇인가?",
+      "type": "RADIO",
+      "options": [
+        "①",
+        "②",
+        "③",
+        "④"
+      ],
+      "correctAnswer": "",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "24e67277",
+      "title": "36.\t다음중 노드정책의 위험탐지 항목이 아닌것을 고르시오",
+      "type": "RADIO",
+      "options": [
+        "① ARP-변조공격",
+        "② DNS 레코드 질의",
+        "③ MAC/IP CLONE 감지",
+        "④ SNMP 차단요청"
+      ],
+      "correctAnswer": "② DNS 레코드 질의",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "2ed6e968",
+      "title": "37.\t다음 중 에이전트를 통한 위험탐지 항목이 아닌 것은?",
+      "type": "RADIO",
+      "options": [
+        "① Ad-Hoc Network Detection (클라이언트에 허용되지 않은 IP를 가진 인터페이스가 존재함)",
+        "② Illegal Route Detection ( 클라이언트에 허용되지 않은 IP를 가진 게이트웨이가 존재함)",
+        "③ MAC+IP Clone 감지",
+        "④ 제공하지 않은 서비스 요청 감지됨"
+      ],
+      "correctAnswer": "④ 제공하지 않은 서비스 요청 감지됨",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "05921866",
+      "title": "38.\t아래 제어 정책을 적용 받는 대상의 PC단말에서 보기의 행위를 하였을 때의 반응으로 옳지 않은 것은?     (참고. NET-ALL : 0.0.0.0/0 , WEB-ALL : 80, 8080 , ANYTIME : 00:00 ~ 24:00)",
+      "type": "RADIO",
+      "options": [
+        "① 브라우저를 통해 www.naver.com 접속하여 웹서핑(TCP 80)이 가능 하다.",
+        "② 게이트웨이에 Ping(icmp)을 시도 하였더니 응답이 없다.",
+        "③ 내부망에 있는 서버로 80 포트 telnet 연결 시 접속 되었다.",
+        "④ 정책서버로 Ping(icmp)을 시도 하였더니 reply가 왔다."
+      ],
+      "correctAnswer": "① 브라우저를 통해 www.naver.com 접속하여 웹서핑(TCP 80)이 가능 하다.",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "54f8a133",
+      "title": "39.\tOffline PMS기능을 사용하는 환경에서는 패치파일 업로드를 위해 Genian syncer를 사용하여야 한다. 아래보기를 보고 옳바른 순서대로 나열된 것을 고르시오",
+      "type": "RADIO",
+      "options": [
+        "① a-b-c-d-e-f",
+        "② c-e-b-d-a-f",
+        "③ c-e-d-b-a-f",
+        "④ a-e-d-b-c-f"
+      ],
+      "correctAnswer": "② c-e-b-d-a-f",
+      "correctAnswers": null,
+      "points": 2
+    },
+    {
+      "questionId": "497b4522",
+      "title": "40.\tGenian NAC에서 제공하는 패치서비스로 옳지 않은 것은?",
+      "type": "RADIO",
+      "options": [
+        "① 정책 > 노드정책 > 노드액션 > 윈도우 업데이트 기능을 통해 사용 한다.",
+        "② Online PMS 방식은 정책서버가 IDC(geniupdate)로부터 패치리스트를 받는다.",
+        "③ Offline PMS 방식은 Genian Syncer을 통해 패치리스트와 Wsuscan2.cab파일을 다운 받아 정책서버에 패치파일을 동기화 한다.",
+        "④ 정책서버에서 승인된 패치리스트를 받아와 WUA와는 별개로 NAC Agent가 OS에 강제로 패치파일을 설치한다."
+      ],
+      "correctAnswer": "④ 정책서버에서 승인된 패치리스트를 받아와 WUA와는 별개로 NAC Agent가 OS에 강제로 패치파일을 설치한다.",
+      "correctAnswers": null,
+      "points": 2
+    }
+  ],
+  "subjectiveQuestions": [
+    {
+      "questionId": "74ef7cf7",
+      "title": "41.\t감사로그의 로그필터 기능을 통하여 이벤트를 생성할 수 있다. 다음 그림에 나와있는 5가지 이벤트의 활용방안에 대해 설명하시오",
+      "maxScore": 2,
+      "modelAnswer": "",
+      "rubric": ""
+    },
+    {
+      "questionId": "4b460acd",
+      "title": "42.\t다음 보기에 작성되어 있는 고객사 상황을 읽고 해당 고객사에서 발생할 수 있는 IP관리 이슈와 조치 및 권고 해야 할 사항들을 작성하시오",
+      "maxScore": 2,
+      "modelAnswer": "",
+      "rubric": ""
+    },
+    {
+      "questionId": "24f40f21",
+      "title": "43.\t특정고객사에서 NAC를 아래와 같이 구축을 하였다. 고객의 요청을 제품에 적용하는 올바른 순서를 고르시오",
+      "maxScore": 2,
+      "modelAnswer": "",
+      "rubric": ""
+    },
+    {
+      "questionId": "7116c0ba",
+      "title": "44.\tNAC의 차단 방법 2가지중  HTTP Redirection + Drop에 대해서 패킷의 흐름과 차단로직에대해 상세히 설명하시오(50자 이상)",
+      "maxScore": 2,
+      "modelAnswer": "",
+      "rubric": ""
+    },
+    {
+      "questionId": "50d447bb",
+      "title": "45.\t아래 사항을 확인하고 담당자의 요구사항에 대하여 알맞게 연동방안에 대하여 자유롭게 기술하시오.",
+      "maxScore": 2,
+      "modelAnswer": "",
+      "rubric": ""
+    },
+    {
+      "questionId": "4a61135f",
+      "title": "46.\t다수의 단말 보안소프트웨어를 사용하는 고객사에서 NAC 에이전트가 동작하지 않거나 특정 노드액션이 동작하지 않는 현상이 다수 발생하고 있다. 원인 확인을 위한 순서에서 이슈처리 완료 보고까지의 처리과정를 작성하시오",
+      "maxScore": 2,
+      "modelAnswer": "",
+      "rubric": ""
+    },
+    {
+      "questionId": "12d86c82",
+      "title": "47.\t아래와 같은 정책을 사용하는 환경에서 단말이 인증할 때 발생하는 정책서버의 이벤트와 에이전트의 이벤트를 작성하시오",
+      "maxScore": 2,
+      "modelAnswer": "",
+      "rubric": ""
+    },
+    {
+      "questionId": "3f4df952",
+      "title": "48.\t아래는 멀티센서 환경에서의 본딩 설정 Config 정보이다. 보기의 내용을 참조하여 빈칸을 작성하시요.",
+      "maxScore": 2,
+      "modelAnswer": "",
+      "rubric": ""
+    },
+    {
+      "questionId": "16dcddfe",
+      "title": "49.\t아래는 고객사의 정책 요구사항과 현재 설정되어 있는 제어정책에 대한 정보이다.  담당자는 NAC정책 프로세스에 대해 잘 모르는 상태로, 필요한 정책을 두서없이 요청하는 상황이다.  요구사항에 대한 제어정책이 모두 설정 되어한다.  현재 설정되어 있는 제어 정책의 문제점 3가지와 요구사항에 맞는 제어정책을 수립하여 우선순위를 고려하여 ID명을 나열하시오.",
+      "maxScore": 2,
+      "modelAnswer": "",
+      "rubric": ""
+    },
+    {
+      "questionId": "0b4b316a",
+      "title": "50.\tGenian NAC에서 MAC/IP CLONE을  탐지하는 2가지 방법을 서술하시오.",
+      "maxScore": 2,
+      "modelAnswer": "",
+      "rubric": ""
+    }
+  ]
+}

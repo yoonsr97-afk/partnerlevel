@@ -42,12 +42,17 @@ const EXAM_SHEETS = {
   NAC: {
     spreadsheetId: process.env.SPREADSHEET_ID_NAC,
     sheetName: process.env.SHEET_NAME_NAC || '설문지 응답 시트1',
-    itemKeyword: 'NAC',
+    itemKeyword: 'NAC 초급',
   },
   EDR: {
     spreadsheetId: process.env.SPREADSHEET_ID_EDR,
     sheetName: process.env.SHEET_NAME_EDR || '설문지 응답 시트1',
     itemKeyword: null,
+  },
+  NAC_MID: {
+    spreadsheetId: process.env.SPREADSHEET_ID_NAC_MID || process.env.SPREADSHEET_ID_NAC,
+    sheetName: process.env.SHEET_NAME_NAC_MID || process.env.SHEET_NAME_NAC || '설문지 응답 시트1',
+    itemKeyword: 'NAC 중급',
   },
   GPI: {
     spreadsheetId: process.env.SPREADSHEET_ID_GPI || process.env.SPREADSHEET_ID_NAC,
@@ -56,12 +61,11 @@ const EXAM_SHEETS = {
   },
 };
 
-// EDR/GPI는 초급 과정만 운영한다. 프론트에서 잘못된 level이 넘어와도 여기서 초급으로 되돌린다
-// (그냥 두면 "Genian EDR 중급" 처럼 존재하지 않는 평가명으로 안내 메일이 나간다)
-const BASIC_ONLY_EXAM_TYPES = new Set(['EDR', 'GPI']);
-function normalizeLevel(examType, level) {
-  if (BASIC_ONLY_EXAM_TYPES.has(examType)) return '초급';
-  return level || '초급';
+// 평가 수준은 시험 종류가 결정한다 - NAC_MID만 중급이고 나머지는 전부 초급이다.
+// 프론트에서 넘어오는 level은 무시한다. 예전에는 화면의 초급/중급 토글 값을 그대로 썼는데,
+// 그러면 "Genian EDR 중급"처럼 존재하지 않는 평가명으로 안내 메일이 나갈 수 있었다.
+function normalizeLevel(examType) {
+  return examType === 'NAC_MID' ? '중급' : '초급';
 }
 
 // 출석 여부를 나타내는 행 배경색 (Google Sheets 기본 팔레트, 0~1 RGB 비율)
@@ -363,7 +367,7 @@ app.post('/api/send-exam-emails', async (req, res) => {
 
   const examType = (req.body.examType || '').toUpperCase();
   const recipients = req.body.recipients;
-  const level = normalizeLevel(examType, req.body.level);
+  const level = normalizeLevel(examType);
   const year = parseInt(req.body.year, 10) || new Date().getFullYear();
   const month = parseInt(req.body.month, 10) || (new Date().getMonth() + 1);
 
@@ -506,7 +510,7 @@ app.post('/api/grade-from-form', async (req, res) => {
   }
 
   const { year, month, examType, formUrl, partners, skipSubjectiveGrading = false } = req.body;
-  const level = normalizeLevel((examType || '').toUpperCase(), req.body.level);
+  const level = normalizeLevel((examType || '').toUpperCase());
   if (!year || !month || !examType || !Array.isArray(partners)) {
     return res.status(400).json({ error: 'year, month, examType, partners 가 필요합니다.' });
   }
@@ -539,7 +543,7 @@ app.get('/api/exam-forms/status', async (req, res) => {
   const year = parseInt(req.query.year, 10);
   const month = parseInt(req.query.month, 10);
   const examType = (req.query.examType || 'NAC').toUpperCase();
-  const level = normalizeLevel(examType, req.query.level);
+  const level = normalizeLevel(examType);
   if (!year || !month) return res.status(400).json({ error: 'year, month 필요' });
 
   try {
@@ -557,7 +561,7 @@ app.post('/api/exam-forms/create', async (req, res) => {
 
   const { year, month } = req.body;
   const examType = (req.body.examType || 'NAC').toUpperCase();
-  const level = normalizeLevel(examType, req.body.level);
+  const level = normalizeLevel(examType);
   if (!year || !month) return res.status(400).json({ error: 'year, month 필요' });
 
   try {
@@ -595,7 +599,7 @@ app.post('/api/exam-check/match', async (req, res) => {
 
   const { year, month, partners } = req.body;
   const examType = (req.body.examType || 'NAC').toUpperCase();
-  const level = normalizeLevel(examType, req.body.level);
+  const level = normalizeLevel(examType);
   if (!year || !month) return res.status(400).json({ error: 'year, month 필요' });
   if (!Array.isArray(partners)) return res.status(400).json({ error: 'partners 배열 필요' });
 
