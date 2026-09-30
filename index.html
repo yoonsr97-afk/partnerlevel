@@ -10,7 +10,7 @@
 <link rel="icon" type="image/svg+xml" href="server/templates/partner_evaluation_icon.svg">
 <!-- style.css / app.js 를 고치면 아래 v 값을 올린다.
      안 올리면 브라우저가 예전 파일을 그대로 써서 수정이 반영되지 않는다. -->
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 
@@ -32,6 +32,19 @@
       </div>
       <p id="loginError" class="login-error hidden"></p>
       <button type="submit" id="loginBtn" class="btn btn-primary login-btn">로그인</button>
+    </form>
+
+    <!-- 2차 인증 - 비밀번호가 맞으면 이 단계로 바뀐다 -->
+    <form id="mfaForm" class="login-form hidden" autocomplete="off">
+      <p class="login-help">Slack DM으로 6자리 인증 코드를 보냈습니다.</p>
+      <div class="login-field">
+        <label class="login-label" for="mfaCode">인증 코드</label>
+        <input class="login-input login-input-code" id="mfaCode" type="text" inputmode="numeric"
+               pattern="[0-9]*" maxlength="6" placeholder="000000" autocomplete="one-time-code">
+      </div>
+      <p id="mfaError" class="login-error hidden"></p>
+      <button type="submit" id="mfaBtn" class="btn btn-primary login-btn">확인</button>
+      <button type="button" id="mfaCancelBtn" class="btn btn-outline login-btn">처음으로</button>
     </form>
   </div>
 </div>
@@ -180,6 +193,6 @@
   </div>
 </div>
 
-<script src="app.js?v=4"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

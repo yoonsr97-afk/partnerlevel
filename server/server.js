@@ -8,7 +8,7 @@ const { google } = require('googleapis');
 const { getAuthClient } = require('./auth');
 const { sendExamEmails } = require('./mailer');
 const { generateCompanyResultPdf, EXAM_TYPE_LABELS } = require('./certificate');
-const { sendCertificateNotice, findChannel, listMappedCompanies, TEST_CHANNEL_ID } = require('./slack');
+const { sendCertificateNotice, sendDirectMessage, findChannel, listMappedCompanies, TEST_CHANNEL_ID } = require('./slack');
 const { RESULT_SHEETS, fetchResultSheetRows, findExistingResult, appendResultRow } = require('./examResults');
 const { generateAnswerKeyTemplate, gradePartnersFromForm } = require('./formsGrading');
 const { getExamFormStatus, createExamForm, publishExamForm, deleteExamForm } = require('./formCreation');
@@ -129,7 +129,56 @@ setInterval(() => {
   for (const [key, entry] of loginAttempts) {
     if (now - entry.seenAt > ATTEMPT_TTL_MS) loginAttempts.delete(key);
   }
+  for (const [token, ch] of mfaChallenges) {
+    if (ch.expiresAt < now) mfaChallenges.delete(token);
+  }
 }, 10 * 60 * 1000).unref();
+
+/* -------------------------------------------------------------------------
+ * 2차 인증 (Slack DM으로 받는 일회용 코드)
+ *
+ * 비밀번호가 맞으면 바로 세션을 주지 않고, 관리자 Slack DM으로 6자리 코드를
+ * 보낸 뒤 그 코드까지 맞아야 세션을 발급한다. 비밀번호가 새더라도 관리자의
+ * Slack 계정이 없으면 들어올 수 없다.
+ *
+ * ADMIN_SLACK_USER_ID 가 없으면 2차 인증을 건너뛰고 예전처럼 바로 로그인된다.
+ * 설정을 깜빡한 채 배포해서 아무도 못 들어가는 상황을 만들지 않기 위해서다.
+ * ------------------------------------------------------------------------- */
+const ADMIN_SLACK_USER_ID = (process.env.ADMIN_SLACK_USER_ID || '').trim();
+const MFA_TTL_MS = 5 * 60 * 1000;   // 코드 유효 시간
+const MFA_MAX_ATTEMPTS = 5;         // 코드 입력 시도 횟수
+
+// mfaToken → { username, codeHash, expiresAt, attempts }
+const mfaChallenges = new Map();
+
+function mfaEnabled() {
+  return !!(ADMIN_SLACK_USER_ID && process.env.SLACK_BOT_TOKEN);
+}
+
+// 코드는 평문으로 들고 있지 않는다 (메모리 덤프/로그에 남지 않도록)
+function hashCode(code) {
+  return crypto.createHash('sha256').update(String(code), 'utf8').digest('hex');
+}
+
+function issueSession(username) {
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = Date.now() + SESSION_TTL_MS;
+  sessions.set(token, { username, expiresAt });
+  return { token, expiresAt };
+}
+
+function createMfaChallenge(username) {
+  // 000000~999999 균일 분포. randomInt는 나머지 연산 편향이 없다.
+  const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+  const token = crypto.randomBytes(32).toString('hex');
+  mfaChallenges.set(token, {
+    username,
+    codeHash: hashCode(code),
+    expiresAt: Date.now() + MFA_TTL_MS,
+    attempts: 0,
+  });
+  return { token, code };
+}
 
 /* 로그인으로 발급된 세션 토큰만 인정한다.
  * 예전에는 SERVER_ACCESS_KEY라는 고정 키로도 통과시켰는데, 만료가 없어서
@@ -426,10 +475,54 @@ app.post('/api/login', async (req, res) => {
 
   clearAttempts(ipKey, accountKey);
 
-  const token = crypto.randomBytes(32).toString('hex');
-  const expiresAt = Date.now() + SESSION_TTL_MS;
-  sessions.set(token, { username, expiresAt });
-  res.json({ token, expiresAt });
+  // 2차 인증이 꺼져 있으면 예전처럼 바로 세션을 준다
+  if (!mfaEnabled()) {
+    return res.json(issueSession(username));
+  }
+
+  const { token: mfaToken, code } = createMfaChallenge(username);
+  try {
+    await sendDirectMessage(ADMIN_SLACK_USER_ID,
+      `파트너 평가 시스템 로그인 인증 코드: *${code}*\n`
+      + `${MFA_TTL_MS / 60000}분 안에 입력해 주세요. 본인이 요청한 것이 아니라면 비밀번호를 즉시 변경하세요.`);
+  } catch (err) {
+    mfaChallenges.delete(mfaToken);
+    console.error('[로그인] 인증 코드 DM 발송 실패:', err.message);
+    return res.status(500).json({
+      error: '인증 코드를 Slack으로 보내지 못했습니다. 관리자에게 문의해 주세요.',
+      code: 'MFA_SEND_FAILED',
+    });
+  }
+
+  res.json({ mfaRequired: true, mfaToken, expiresInMs: MFA_TTL_MS });
+});
+
+// 2차 인증 - Slack DM으로 받은 코드를 확인하고 세션을 발급한다
+app.post('/api/login/verify', (req, res) => {
+  const { mfaToken, code } = req.body || {};
+  if (!mfaToken || !code) return res.status(400).json({ error: '인증 코드를 입력해주세요.' });
+
+  const challenge = mfaChallenges.get(mfaToken);
+  if (!challenge || challenge.expiresAt < Date.now()) {
+    mfaChallenges.delete(mfaToken);
+    return res.status(401).json({ error: '인증 시간이 지났습니다. 다시 로그인해 주세요.', code: 'MFA_EXPIRED' });
+  }
+
+  challenge.attempts += 1;
+  if (!safeEqual(hashCode(String(code).trim()), challenge.codeHash)) {
+    // 6자리 숫자는 계속 넣어보면 맞출 수 있다. 몇 번 틀리면 코드를 폐기한다.
+    if (challenge.attempts >= MFA_MAX_ATTEMPTS) {
+      mfaChallenges.delete(mfaToken);
+      recordFailure(`ip:${req.ip}`, { limit: IP_FAIL_LIMIT, lockMs: IP_LOCK_BASE_MS, escalate: true });
+      return res.status(401).json({ error: '인증 코드를 여러 번 틀렸습니다. 다시 로그인해 주세요.', code: 'MFA_EXPIRED' });
+    }
+    const left = MFA_MAX_ATTEMPTS - challenge.attempts;
+    return res.status(401).json({ error: `인증 코드가 올바르지 않습니다. (${left}회 남음)` });
+  }
+
+  // 한 번 쓴 코드는 재사용할 수 없다
+  mfaChallenges.delete(mfaToken);
+  res.json(issueSession(challenge.username));
 });
 
 // 세션 갱신 - 30분 연장

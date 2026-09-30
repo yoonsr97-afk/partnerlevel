@@ -142,16 +142,94 @@ async function handleLogin(e) {
 
     if (!res.ok) throw new Error(data.error || '로그인에 실패했습니다.');
 
-    sessionStorage.setItem('sessionToken', data.token);
-    SHEETS_ACCESS_KEY = data.token;
-    document.getElementById('loginOverlay').classList.add('hidden');
-    startSessionTimer(data.expiresAt);
+    // 2차 인증이 켜져 있으면 세션 대신 인증 코드 입력 단계로 넘어간다
+    if (data.mfaRequired) {
+      showMfaStep(data.mfaToken);
+      return;
+    }
+
+    completeLogin(data);
   } catch (err) {
     errorEl.textContent = err.message;
     errorEl.classList.remove('hidden');
   } finally {
     btn.disabled = false;
     btn.textContent = '로그인';
+  }
+}
+
+/* ── 2차 인증 (Slack DM 코드) ── */
+let pendingMfaToken = null;
+
+function completeLogin(data) {
+  sessionStorage.setItem('sessionToken', data.token);
+  SHEETS_ACCESS_KEY = data.token;
+  document.getElementById('loginOverlay').classList.add('hidden');
+  startSessionTimer(data.expiresAt);
+}
+
+function showMfaStep(mfaToken) {
+  pendingMfaToken = mfaToken;
+  document.getElementById('loginForm').classList.add('hidden');
+  document.getElementById('mfaForm').classList.remove('hidden');
+  document.getElementById('mfaError').classList.add('hidden');
+  const input = document.getElementById('mfaCode');
+  input.value = '';
+  input.focus();
+}
+
+// 비밀번호 단계로 되돌린다. 발급된 코드는 서버에서 시간이 지나면 알아서 버려진다.
+function resetLoginForm() {
+  pendingMfaToken = null;
+  document.getElementById('mfaForm').classList.add('hidden');
+  document.getElementById('loginForm').classList.remove('hidden');
+  document.getElementById('loginPassword').value = '';
+  document.getElementById('loginError').classList.add('hidden');
+}
+
+async function handleMfaVerify(e) {
+  e.preventDefault();
+  const code = document.getElementById('mfaCode').value.trim();
+  const errorEl = document.getElementById('mfaError');
+  const btn = document.getElementById('mfaBtn');
+
+  if (!code) {
+    errorEl.textContent = '인증 코드를 입력해주세요.';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '확인 중...';
+  errorEl.classList.add('hidden');
+
+  try {
+    const res = await fetch(`${SHEETS_API_BASE_URL}/api/login/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mfaToken: pendingMfaToken, code }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      // 코드가 폐기된 경우(시간 초과, 여러 번 틀림)에는 비밀번호부터 다시 받는다
+      if (data.code === 'MFA_EXPIRED') {
+        resetLoginForm();
+        const loginError = document.getElementById('loginError');
+        loginError.textContent = data.error;
+        loginError.classList.remove('hidden');
+        return;
+      }
+      throw new Error(data.error || '인증에 실패했습니다.');
+    }
+
+    completeLogin(data);
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '확인';
   }
 }
 
@@ -194,6 +272,12 @@ async function initLogin() {
     }
   }
   document.getElementById('loginForm').addEventListener('submit', handleLogin);
+  document.getElementById('mfaForm').addEventListener('submit', handleMfaVerify);
+  document.getElementById('mfaCancelBtn').addEventListener('click', resetLoginForm);
+  // 숫자만 받는다 - 붙여넣기로 공백이나 하이픈이 섞여 들어오는 것을 막는다
+  document.getElementById('mfaCode').addEventListener('input', (e) => {
+    e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+  });
 }
 
 /* ----------------------- 전역 state ----------------------- */

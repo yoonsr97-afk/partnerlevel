@@ -139,6 +139,24 @@ async function callSlackForm(method, params) {
 }
 
 /* -------------------------------------------------------------------------
+ * 관리자에게 DM 보내기 (2차 인증 코드 발송용)
+ *
+ * 봇이 사용자에게 DM을 보내려면 먼저 대화를 열어 채널 ID를 받아야 한다.
+ * conversations.open 에는 im:write 권한이 필요하다.
+ * ------------------------------------------------------------------------- */
+async function sendDirectMessage(userId, text) {
+  const opened = await callSlack('conversations.open', { users: userId });
+  const channelId = opened.channel && opened.channel.id;
+  if (!channelId) {
+    const err = new Error('Slack DM 채널을 열지 못했습니다.');
+    err.code = 'SLACK_DM_FAILED';
+    throw err;
+  }
+  await callSlack('chat.postMessage', { channel: channelId, text });
+  return channelId;
+}
+
+/* -------------------------------------------------------------------------
  * 파일 바이트를 Slack에 올린다 (아직 채널에 게시되지는 않는다)
  * 반환한 file id를 completeUploadExternal에 넘겨야 비로소 메시지가 된다.
  * ------------------------------------------------------------------------- */
@@ -233,6 +251,7 @@ async function sendCertificateNotice({
 
 module.exports = {
   sendCertificateNotice,
+  sendDirectMessage,
   findChannel,
   listMappedCompanies,
   normalizeCompany,

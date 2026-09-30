@@ -121,6 +121,11 @@ SERVICE_ACCOUNT_KEY_PATH=./service-account.json
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD_HASH=$2b$12$...
 
+# 2차 인증 (선택) - 설정하면 로그인 시 Slack DM으로 6자리 코드가 온다.
+# 값을 비우면 2차 인증 없이 동작한다. Slack 프로필 > 더보기 > 멤버 ID 복사.
+# 봇에 im:write 권한이 필요하다.
+ADMIN_SLACK_USER_ID=U...
+
 # Gmail 발송 계정
 MAIL_USER=...@gmail.com
 MAIL_APP_PASSWORD=...

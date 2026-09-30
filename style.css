@@ -163,6 +163,29 @@ body {
   margin-top: 4px;
 }
 
+/* ── 2차 인증 단계 ── */
+.login-help {
+  font-size: 13px;
+  color: #475569;
+  margin: 0 0 4px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* 6자리 코드는 한 글자씩 또렷하게 보이는 편이 오입력을 줄인다 */
+.login-input-code {
+  text-align: center;
+  font-size: 22px;
+  letter-spacing: 8px;
+  font-variant-numeric: tabular-nums;
+  padding-left: 8px; /* letter-spacing이 마지막 글자 뒤에도 붙어 생기는 쏠림 보정 */
+}
+
+.login-input-code::placeholder {
+  letter-spacing: 8px;
+  color: #cbd5e1;
+}
+
 /* ===================== 헤더 (nav-bar-top) ===================== */
 .app-header {
   background-color: var(--canvas);
