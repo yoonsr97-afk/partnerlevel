@@ -354,7 +354,7 @@ function downloadCompanyCertificate({ company, examType, year, month, members })
 }
 
 /* Slack 발송 - 서버가 수료증 PDF를 만들어 파트너사 채널에 안내 메시지를 올리고
- * 그 스레드에 PDF를 댓글로 붙인다. 수료증과 마찬가지로 회사 단위로 한 번 나간다. */
+ * 그 메시지 본문에 PDF를 첨부한다. 수료증과 마찬가지로 회사 단위로 한 번 나간다. */
 function sendCertificateToSlack({ company, examType, year, month, members, test = false, attachments = [] }) {
   const url = `${SHEETS_API_BASE_URL}/api/slack-certificate?key=${encodeURIComponent(SHEETS_ACCESS_KEY)}`;
   return apiFetch(url, {
@@ -1687,7 +1687,7 @@ function handleRemoveSlackAttachment(id, index) {
   renderPassListTab();
 }
 
-/* Slack 발송 - 파트너사 채널에 결과 안내를 올리고 스레드에 수료증을 붙인다.
+/* Slack 발송 - 파트너사 채널에 결과 안내를 올리면서 수료증을 본문에 첨부한다.
  * 외부(파트너사)로 나가는 알림이라 되돌릴 수 없어서, 보내기 전에 대상과 인원을 확인받는다.
  *
  * isTest 를 주면 파트너사가 아니라 테스트 채널로만 나간다. 문구와 첨부 형태를 확인하는
@@ -1711,7 +1711,7 @@ function handleSendSlackCertificate(id, { isTest = false } = {}) {
   const attachNote = attachments.length
     ? ` 수료증과 함께 ${attachments.length}개 파일이 더 붙습니다 (${attachments.map((f) => f.filename).join(', ')}).`
     : '';
-  const detail = `대상 ${companyMembers.length}명 (합격 ${passCount}명) · 수료증 PDF가 스레드에 첨부됩니다.${attachNote}`;
+  const detail = `대상 ${companyMembers.length}명 (합격 ${passCount}명) · 수료증 PDF가 메시지에 첨부됩니다.${attachNote}`;
 
   const message = isTest
     ? `[테스트] ${partner.company}의 ${period} 결과를 테스트 채널로 발송합니다.\n`

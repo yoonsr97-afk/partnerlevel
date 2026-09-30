@@ -1,15 +1,18 @@
 /* =========================================================================
  * Slack 수료증 알림 발송
  * -------------------------------------------------------------------------
- * 파트너사 채널에 평가 결과 안내 메시지를 올리고, 그 메시지의 스레드에
- * 수료증 PDF를 댓글로 붙인다. 채널 타임라인은 한 줄만 차지하고 파일은
- * 스레드 안에 들어가서, 채널이 파일로 지저분해지지 않는다.
+ * 파트너사 채널에 평가 결과 안내 메시지를 올리면서 수료증 PDF를 그 메시지
+ * 본문에 함께 첨부한다. 받는 쪽이 스레드를 펼치지 않아도 파일이 바로 보인다.
  *
  * 발송 절차 (Slack Web API)
- *   1. chat.postMessage            - 안내 메시지 게시 → 스레드 기준 ts 획득
- *   2. files.getUploadURLExternal  - 업로드 URL 발급
- *   3. (발급받은 URL로 파일 전송)
- *   4. files.completeUploadExternal - thread_ts를 지정해 스레드에 첨부
+ *   1. files.getUploadURLExternal   - 파일마다 업로드 URL 발급
+ *   2. (발급받은 URL로 파일 전송)
+ *   3. files.completeUploadExternal - initial_comment에 안내 문구를 실어
+ *                                     파일과 함께 한 건의 메시지로 게시
+ *
+ * chat.postMessage를 따로 쓰지 않는다. 메시지를 먼저 올리면 첨부가 실패했을 때
+ * 파일 없는 안내만 채널에 남는데, 이 순서는 업로드가 끝난 뒤에 게시하므로
+ * 도중에 실패해도 채널에 아무것도 남지 않는다.
  *
  * 필요한 것
  *   - .env 의 SLACK_BOT_TOKEN (xoxb-로 시작하는 봇 토큰)
@@ -136,9 +139,10 @@ async function callSlackForm(method, params) {
 }
 
 /* -------------------------------------------------------------------------
- * 파일을 스레드 댓글로 올린다
+ * 파일 바이트를 Slack에 올린다 (아직 채널에 게시되지는 않는다)
+ * 반환한 file id를 completeUploadExternal에 넘겨야 비로소 메시지가 된다.
  * ------------------------------------------------------------------------- */
-async function uploadFileToThread({ channelId, threadTs, filename, buffer, title, contentType }) {
+async function uploadFileBytes({ filename, buffer, contentType }) {
   // ① 업로드 URL 발급
   const { upload_url: uploadUrl, file_id: fileId } = await callSlackForm('files.getUploadURLExternal', {
     filename,
@@ -153,16 +157,11 @@ async function uploadFileToThread({ channelId, threadTs, filename, buffer, title
     throw new Error(`파일 업로드에 실패했습니다 (HTTP ${uploadRes.status}) - ${filename}`);
   }
 
-  // ③ 업로드 확정 - thread_ts를 주면 채널이 아니라 스레드 안에 붙는다
-  return callSlack('files.completeUploadExternal', {
-    files: [{ id: fileId, title: title || filename }],
-    channel_id: channelId,
-    thread_ts: threadTs,
-  });
+  return { id: fileId, title: filename };
 }
 
 /* -------------------------------------------------------------------------
- * 수료증 알림 발송 (메시지 + 스레드 첨부)
+ * 수료증 알림 발송 (안내 문구와 첨부가 한 건의 메시지로 나간다)
  *
  * @param {string} company   파트너사명 (채널 결정에 사용)
  * @param {string} examLabel "NAC 초급" 같은 평가 표기
@@ -192,50 +191,43 @@ async function sendCertificateNotice({
   // 테스트 채널에 실제 안내로 오인될 메시지가 남지 않도록 표시를 붙인다
   const text = isTest ? `[테스트 발송 · ${company}] ${notice}` : notice;
 
-  // ① 안내 메시지
-  const posted = await callSlack('chat.postMessage', {
-    channel: target.channelId,
-    text,
-  });
-
-  // ② 첨부는 모두 스레드 댓글로 - 채널 타임라인이 파일로 밀리지 않게 한다.
-  //    수료증이 먼저 올라가고, 관리자가 고른 추가 파일이 고른 순서대로 뒤따른다.
-  //    Slack은 동시 업로드 시 순서를 보장하지 않아 순차로 처리한다.
+  // 수료증이 먼저, 관리자가 고른 추가 파일이 고른 순서대로 뒤따른다.
   const files = [
     { filename, buffer: pdfBuffer, contentType: 'application/pdf' },
     ...extraFiles,
   ];
 
-  const uploaded = [];
+  // ① 파일을 먼저 다 올린다. 아직 채널에는 아무것도 보이지 않는다.
+  //    Slack은 동시 업로드 시 순서를 보장하지 않아 순차로 처리한다.
+  const prepared = [];
   for (const f of files) {
     try {
-      await uploadFileToThread({
-        channelId: target.channelId,
-        threadTs: posted.ts,
-        filename: f.filename,
-        buffer: f.buffer,
-        title: f.filename,
-        contentType: f.contentType,
-      });
-      uploaded.push(f.filename);
+      prepared.push(await uploadFileBytes(f));
     } catch (err) {
-      // 메시지는 이미 올라갔고 일부는 붙었을 수 있다 - 어디까지 됐는지 그대로 알려준다
-      const done = uploaded.length ? ` (첨부 완료: ${uploaded.join(', ')})` : '';
-      const wrapped = new Error(`안내 메시지는 게시했지만 "${f.filename}" 첨부에 실패했습니다: ${err.message}${done}`);
+      // 게시 전이라 채널에는 아무것도 남지 않았다 - 그대로 실패시키면 된다
+      const wrapped = new Error(`"${f.filename}" 업로드에 실패해 발송을 중단했습니다: ${err.message}`);
       wrapped.code = 'SLACK_UPLOAD_FAILED';
-      wrapped.messageTs = posted.ts;
-      wrapped.uploaded = uploaded;
       throw wrapped;
     }
   }
 
+  // ② 안내 문구와 파일을 한 건의 메시지로 게시한다.
+  //    initial_comment가 메시지 본문이 되고 파일이 그 아래 붙는다.
+  //    응답에는 게시된 메시지의 ts가 없다. 파일의 shares에 담겨 오지만 게시 직후에는
+  //    아직 비어 있고, 나중에 채워진 값을 읽으려면 files:read 권한이 따로 필요하다.
+  //    본문 한 건으로 끝나는 발송이라 ts를 쓸 곳이 없어 받아두지 않는다.
+  await callSlack('files.completeUploadExternal', {
+    files: prepared,
+    channel_id: target.channelId,
+    initial_comment: text,
+  });
+
   return {
     channelId: target.channelId,
     company: target.company,
-    ts: posted.ts,
     text,
     isTest,
-    uploadedFiles: uploaded,
+    uploadedFiles: files.map((f) => f.filename),
   };
 }
 
