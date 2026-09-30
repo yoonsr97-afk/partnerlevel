@@ -116,9 +116,6 @@ SHEET_NAME_EDR=설문지 응답 시트1
 # 서비스 계정 (로컬: 파일 경로, 서버: SERVICE_ACCOUNT_JSON 환경변수 사용)
 SERVICE_ACCOUNT_KEY_PATH=./service-account.json
 
-# API 접근 키 (레거시 호환, 세션 토큰으로 대체됨)
-SERVER_ACCESS_KEY=...
-
 # 관리자 계정
 # 해시는 `cd server && node tools/hash-password.js` 로 만든다 (bcrypt)
 ADMIN_USERNAME=admin

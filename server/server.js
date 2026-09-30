@@ -15,7 +15,6 @@ const { getExamFormStatus, createExamForm, publishExamForm, deleteExamForm } = r
 const { matchExamResponses } = require('./examCheck');
 
 const PORT = process.env.PORT || 4000;
-const SERVER_ACCESS_KEY = process.env.SERVER_ACCESS_KEY;
 
 // 세션 토큰 저장소 (메모리, 서버 재시작 시 초기화)
 const sessions = new Map(); // token → { username, expiresAt }
@@ -132,15 +131,14 @@ setInterval(() => {
   }
 }, 10 * 60 * 1000).unref();
 
+/* 로그인으로 발급된 세션 토큰만 인정한다.
+ * 예전에는 SERVER_ACCESS_KEY라는 고정 키로도 통과시켰는데, 만료가 없어서
+ * 한 번 새면 영구 관리자 권한이 되고 로그인 체계를 통째로 우회했다. */
 function isAuthorized(req) {
   const key = req.query.key;
   if (!key) return false;
-  // 기존 SERVER_ACCESS_KEY 방식 (하위 호환)
-  if (SERVER_ACCESS_KEY && key === SERVER_ACCESS_KEY) return true;
-  // 세션 토큰 방식
   const session = sessions.get(key);
-  if (session && session.expiresAt > Date.now()) return true;
-  return false;
+  return !!(session && session.expiresAt > Date.now());
 }
 const SERVICE_ACCOUNT_KEY_PATH = process.env.SERVICE_ACCOUNT_KEY_PATH
   ? path.resolve(__dirname, process.env.SERVICE_ACCOUNT_KEY_PATH)
@@ -341,8 +339,18 @@ app.use(cors({
 // base64는 원본보다 약 1/3 커지므로 여유를 두고 잡는다.
 app.use(express.json({ limit: '30mb' }));
 
-// 임시 진단 엔드포인트 - 배포 확인 후 삭제
-app.get('/api/health', async (req, res) => {
+/* 살아있는지만 알려준다. Railway 헬스체크가 이 경로를 볼 수 있어 남겨두되,
+ * 인증 없이 열려 있는 만큼 서버 내부 사정은 하나도 싣지 않는다.
+ * 설정 상태는 아래 /api/diagnostics 에서 로그인한 뒤에 본다. */
+app.get('/api/health', (req, res) => {
+  res.json({ ok: true });
+});
+
+/* 배포 후 설정 점검용. 예전에는 이 내용이 /api/health로 인증 없이 나갔다.
+ * Google 토큰까지 실제로 받아보므로 헬스체크처럼 자주 부를 것은 아니다. */
+app.get('/api/diagnostics', async (req, res) => {
+  if (!isAuthorized(req)) return res.status(401).json({ error: 'unauthorized' });
+
   const hasJson = !!process.env.SERVICE_ACCOUNT_JSON;
   let parseOk = false;
   let parseError = null;
