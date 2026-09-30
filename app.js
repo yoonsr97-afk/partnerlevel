@@ -11,11 +11,9 @@
  * 로그인 / 세션 관리
  * ========================================================================= */
 
-// 비밀번호를 SHA-256으로 해시 (Web Crypto API - 평문 전송 방지)
-async function hashPassword(password) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password));
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
-}
+/* 비밀번호는 원문 그대로 서버에 보내고 해싱은 서버에서만 한다(HTTPS로 보호된다).
+ * 예전에는 여기서 SHA-256 해시를 만들어 보냈는데, 그러면 서버에 저장된 해시가
+ * 그대로 로그인 자격증명이 되어 해시를 아는 사람은 비밀번호 없이 들어올 수 있었다. */
 
 /* ── 세션 타이머 ── */
 let sessionExpiresAt = null;
@@ -135,11 +133,10 @@ async function handleLogin(e) {
   errorEl.classList.add('hidden');
 
   try {
-    const passwordHash = await hashPassword(password);
     const res = await fetch(`${SHEETS_API_BASE_URL}/api/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, passwordHash }),
+      body: JSON.stringify({ username, password }),
     });
     const data = await res.json();
 

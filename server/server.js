@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const { google } = require('googleapis');
 const { getAuthClient } = require('./auth');
 const { sendExamEmails } = require('./mailer');
@@ -19,6 +20,117 @@ const SERVER_ACCESS_KEY = process.env.SERVER_ACCESS_KEY;
 // 세션 토큰 저장소 (메모리, 서버 재시작 시 초기화)
 const sessions = new Map(); // token → { username, expiresAt }
 const SESSION_TTL_MS = 30 * 60 * 1000; // 30분
+
+/* -------------------------------------------------------------------------
+ * 비밀번호 검증
+ *
+ * 브라우저는 비밀번호 원문을 보내고, 해싱은 서버에서만 한다.
+ * 예전에는 브라우저가 SHA-256 해시를 만들어 보내고 서버가 저장된 해시와
+ * 문자열 비교만 했는데, 그러면 저장된 해시 자체가 비밀번호가 되어버린다
+ * (해시를 손에 넣은 사람은 원문을 몰라도 그대로 보내면 로그인된다).
+ *
+ * ADMIN_PASSWORD_HASH 가 bcrypt 해시($2a$/$2b$/$2y$로 시작)면 bcrypt로 검증하고,
+ * 아직 예전 64자리 SHA-256 값이면 그 방식으로 검증한다. 운영 중에 환경변수를
+ * 바꾸기 전까지 로그인이 막히지 않게 하기 위한 한시적 경로다.
+ * ------------------------------------------------------------------------- */
+function looksLikeBcryptHash(hash) {
+  return /^\$2[aby]\$\d{2}\$/.test(hash);
+}
+
+function looksLikeLegacySha256(hash) {
+  return /^[a-f0-9]{64}$/i.test(hash);
+}
+
+// 길이가 다르면 timingSafeEqual이 예외를 던져서 먼저 걸러낸다
+function safeEqual(a, b) {
+  const bufA = Buffer.from(a, 'utf8');
+  const bufB = Buffer.from(b, 'utf8');
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
+let legacyHashWarned = false;
+
+async function verifyPassword(password, storedHash) {
+  if (looksLikeBcryptHash(storedHash)) {
+    return bcrypt.compare(password, storedHash);
+  }
+
+  if (looksLikeLegacySha256(storedHash)) {
+    if (!legacyHashWarned) {
+      console.warn('[보안] ADMIN_PASSWORD_HASH가 아직 SHA-256입니다. '
+        + 'node tools/hash-password.js 로 bcrypt 해시를 만들어 교체해 주세요.');
+      legacyHashWarned = true;
+    }
+    const digest = crypto.createHash('sha256').update(password, 'utf8').digest('hex');
+    return safeEqual(digest, storedHash.toLowerCase());
+  }
+
+  // 형식을 모르면 통과시키지 않는다 - 설정 실수로 인증이 무력화되는 편보다 낫다
+  throw new Error('ADMIN_PASSWORD_HASH 형식을 인식할 수 없습니다. bcrypt 해시로 설정해 주세요.');
+}
+
+/* -------------------------------------------------------------------------
+ * 로그인 시도 제한
+ *
+ * 계정이 admin 하나뿐이라 시도 횟수를 막지 않으면 계속 두드려볼 수 있다.
+ * IP와 계정 두 축으로 나눠서 센다.
+ *   - IP 기준은 엄격하게: 5회 실패부터 잠그고 실패할수록 잠금이 길어진다.
+ *   - 계정 기준은 느슨하게: 여러 IP를 쓰는 공격을 막되, 공격자가 일부러
+ *     실패시켜 진짜 관리자를 잠가버리는 상황(서비스 거부)을 피해야 해서
+ *     한계를 훨씬 높게 두고 잠금 시간도 고정이다.
+ * ------------------------------------------------------------------------- */
+const IP_FAIL_LIMIT = 5;
+const IP_LOCK_BASE_MS = 30 * 1000;      // 6회째 30초, 이후 실패마다 2배
+const IP_LOCK_MAX_MS = 30 * 60 * 1000;  // 최대 30분
+const ACCOUNT_FAIL_LIMIT = 20;
+const ACCOUNT_LOCK_MS = 15 * 60 * 1000;
+const ATTEMPT_TTL_MS = 60 * 60 * 1000;  // 1시간 조용하면 기록을 버린다
+
+const loginAttempts = new Map(); // key → { fails, lockedUntil, seenAt }
+
+function getAttempt(key) {
+  const now = Date.now();
+  const entry = loginAttempts.get(key);
+  if (!entry || now - entry.seenAt > ATTEMPT_TTL_MS) {
+    const fresh = { fails: 0, lockedUntil: 0, seenAt: now };
+    loginAttempts.set(key, fresh);
+    return fresh;
+  }
+  entry.seenAt = now;
+  return entry;
+}
+
+// 잠겨 있으면 남은 시간(ms), 아니면 0
+function lockRemaining(key) {
+  const entry = loginAttempts.get(key);
+  if (!entry) return 0;
+  return Math.max(0, entry.lockedUntil - Date.now());
+}
+
+function recordFailure(key, { limit, lockMs, escalate }) {
+  const entry = getAttempt(key);
+  entry.fails += 1;
+  if (entry.fails >= limit) {
+    const over = entry.fails - limit;
+    entry.lockedUntil = Date.now() + (escalate
+      ? Math.min(lockMs * Math.pow(2, over), IP_LOCK_MAX_MS)
+      : lockMs);
+  }
+  return entry;
+}
+
+function clearAttempts(...keys) {
+  keys.forEach((k) => loginAttempts.delete(k));
+}
+
+// 만료된 기록을 주기적으로 버린다 (놔두면 Map이 계속 커진다)
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of loginAttempts) {
+    if (now - entry.seenAt > ATTEMPT_TTL_MS) loginAttempts.delete(key);
+  }
+}, 10 * 60 * 1000).unref();
 
 function isAuthorized(req) {
   const key = req.query.key;
@@ -214,6 +326,9 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   : null;
 
 const app = express();
+// Railway는 프록시 뒤에서 앱을 돌린다. 이 설정이 없으면 req.ip가 프록시 주소로
+// 고정되어, 로그인 시도 제한이 모든 접속자를 한 덩어리로 묶어버린다.
+app.set('trust proxy', 1);
 app.use(cors({
   origin: (origin, callback) => {
     if (!ALLOWED_ORIGINS) return callback(null, true); // 로컬: 전체 허용
@@ -251,17 +366,57 @@ app.get('/api/health', async (req, res) => {
   res.json({ ok: true, hasServiceAccountJson: hasJson, jsonParseOk: parseOk, parseError, googleReachable, googleError });
 });
 
-// 로그인 - 클라이언트에서 SHA-256 해시된 비밀번호를 받아 검증 후 세션 토큰 반환
-app.post('/api/login', (req, res) => {
-  const { username, passwordHash } = req.body || {};
+// 로그인 - 비밀번호를 받아 서버에서 검증하고 세션 토큰을 돌려준다
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body || {};
   const storedUsername = process.env.ADMIN_USERNAME || 'admin';
   const storedHash = process.env.ADMIN_PASSWORD_HASH;
 
   if (!storedHash) return res.status(500).json({ error: '서버 계정 정보가 설정되지 않았습니다.' });
-  if (!username || !passwordHash) return res.status(400).json({ error: '아이디와 비밀번호를 입력해주세요.' });
-  if (username !== storedUsername || passwordHash !== storedHash) {
-    return res.status(401).json({ error: '아이디 또는 비밀번호가 올바르지 않습니다.' });
+
+  // 예전 화면이 브라우저에 캐시된 경우 - 비밀번호 대신 해시를 보낸다
+  if (!password && req.body && req.body.passwordHash) {
+    return res.status(400).json({ error: '페이지가 오래되었습니다. 새로고침(Ctrl+Shift+R) 후 다시 로그인해 주세요.' });
   }
+  if (!username || !password) return res.status(400).json({ error: '아이디와 비밀번호를 입력해주세요.' });
+
+  const ipKey = `ip:${req.ip}`;
+  const accountKey = `user:${String(username).toLowerCase()}`;
+
+  // 잠금 확인 - 비밀번호를 대조하기 전에 막는다
+  const locked = Math.max(lockRemaining(ipKey), lockRemaining(accountKey));
+  if (locked > 0) {
+    const minutes = Math.ceil(locked / 60000);
+    return res.status(429).json({
+      error: `로그인 시도가 많아 잠시 차단되었습니다. ${minutes}분 후 다시 시도해 주세요.`,
+      retryAfterMs: locked,
+    });
+  }
+
+  let passwordOk = false;
+  try {
+    passwordOk = await verifyPassword(password, storedHash);
+  } catch (err) {
+    console.error('[로그인] 비밀번호 검증 실패:', err.message);
+    return res.status(500).json({ error: '서버 계정 설정에 문제가 있습니다. 관리자에게 문의해 주세요.' });
+  }
+
+  // 아이디가 틀려도 비밀번호 대조는 이미 끝난 뒤라 응답 시간으로 아이디 존재 여부를 알기 어렵다
+  if (!safeEqual(String(username), storedUsername) || !passwordOk) {
+    const ipEntry = recordFailure(ipKey, { limit: IP_FAIL_LIMIT, lockMs: IP_LOCK_BASE_MS, escalate: true });
+    recordFailure(accountKey, { limit: ACCOUNT_FAIL_LIMIT, lockMs: ACCOUNT_LOCK_MS, escalate: false });
+    if (ipEntry.lockedUntil > Date.now()) {
+      console.warn(`[로그인] ${req.ip} 차단 - 실패 ${ipEntry.fails}회`);
+    }
+    const left = Math.max(0, IP_FAIL_LIMIT - ipEntry.fails);
+    return res.status(401).json({
+      error: left > 0 && left <= 2
+        ? `아이디 또는 비밀번호가 올바르지 않습니다. (${left}회 더 실패하면 일시 차단됩니다)`
+        : '아이디 또는 비밀번호가 올바르지 않습니다.',
+    });
+  }
+
+  clearAttempts(ipKey, accountKey);
 
   const token = crypto.randomBytes(32).toString('hex');
   const expiresAt = Date.now() + SESSION_TTL_MS;

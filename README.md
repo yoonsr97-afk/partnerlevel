@@ -119,9 +119,10 @@ SERVICE_ACCOUNT_KEY_PATH=./service-account.json
 # API 접근 키 (레거시 호환, 세션 토큰으로 대체됨)
 SERVER_ACCESS_KEY=...
 
-# 관리자 계정 (비밀번호는 SHA-256 해시)
+# 관리자 계정
+# 해시는 `cd server && node tools/hash-password.js` 로 만든다 (bcrypt)
 ADMIN_USERNAME=admin
-ADMIN_PASSWORD_HASH=...
+ADMIN_PASSWORD_HASH=$2b$12$...
 
 # Gmail 발송 계정
 MAIL_USER=...@gmail.com
