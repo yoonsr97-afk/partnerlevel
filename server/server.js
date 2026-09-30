@@ -129,8 +129,9 @@ setInterval(() => {
   for (const [key, entry] of loginAttempts) {
     if (now - entry.seenAt > ATTEMPT_TTL_MS) loginAttempts.delete(key);
   }
+  // 만료된 코드도 재전송 대상이라 바로 지우지 않고, 절대 수명이 지나면 버린다
   for (const [token, ch] of mfaChallenges) {
-    if (ch.expiresAt < now) mfaChallenges.delete(token);
+    if (now - ch.createdAt > MFA_ABSOLUTE_TTL_MS) mfaChallenges.delete(token);
   }
 }, 10 * 60 * 1000).unref();
 
@@ -145,10 +146,14 @@ setInterval(() => {
  * 설정을 깜빡한 채 배포해서 아무도 못 들어가는 상황을 만들지 않기 위해서다.
  * ------------------------------------------------------------------------- */
 const ADMIN_SLACK_USER_ID = (process.env.ADMIN_SLACK_USER_ID || '').trim();
-const MFA_TTL_MS = 60 * 1000;       // 코드 유효 시간
-const MFA_MAX_ATTEMPTS = 5;         // 코드 입력 시도 횟수
+const MFA_TTL_MS = 60 * 1000;             // 코드 유효 시간
+const MFA_MAX_ATTEMPTS = 5;               // 코드 입력 시도 횟수
+const MFA_RESEND_COOLDOWN_MS = 15 * 1000; // 재전송 간격 (DM 도배 방지)
+const MFA_MAX_RESENDS = 3;                // 재전송 횟수
+// 비밀번호 확인 이후 이 시간이 지나면 재전송도 막고 처음부터 다시 받는다
+const MFA_ABSOLUTE_TTL_MS = 10 * 60 * 1000;
 
-// mfaToken → { username, codeHash, expiresAt, attempts }
+// mfaToken → { username, codeHash, expiresAt, attempts, createdAt, resends, lastSentAt }
 const mfaChallenges = new Map();
 
 function mfaEnabled() {
@@ -167,17 +172,30 @@ function issueSession(username) {
   return { token, expiresAt };
 }
 
+// 000000~999999 균일 분포. randomInt는 나머지 연산 편향이 없다.
+function newCode() {
+  return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+}
+
 function createMfaChallenge(username) {
-  // 000000~999999 균일 분포. randomInt는 나머지 연산 편향이 없다.
-  const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+  const code = newCode();
   const token = crypto.randomBytes(32).toString('hex');
+  const now = Date.now();
   mfaChallenges.set(token, {
     username,
     codeHash: hashCode(code),
-    expiresAt: Date.now() + MFA_TTL_MS,
+    expiresAt: now + MFA_TTL_MS,
     attempts: 0,
+    createdAt: now,
+    resends: 0,
+    lastSentAt: now,
   });
   return { token, code };
+}
+
+function mfaCodeMessage(code) {
+  return `파트너 평가 시스템 로그인 인증 코드: *${code}*\n`
+    + `${MFA_TTL_MS / 1000}초 안에 입력해 주세요. 본인이 요청한 것이 아니라면 비밀번호를 즉시 변경하세요.`;
 }
 
 /* 로그인으로 발급된 세션 토큰만 인정한다.
@@ -482,9 +500,7 @@ app.post('/api/login', async (req, res) => {
 
   const { token: mfaToken, code } = createMfaChallenge(username);
   try {
-    await sendDirectMessage(ADMIN_SLACK_USER_ID,
-      `파트너 평가 시스템 로그인 인증 코드: *${code}*\n`
-      + `${MFA_TTL_MS / 60000}분 안에 입력해 주세요. 본인이 요청한 것이 아니라면 비밀번호를 즉시 변경하세요.`);
+    await sendDirectMessage(ADMIN_SLACK_USER_ID, mfaCodeMessage(code));
   } catch (err) {
     mfaChallenges.delete(mfaToken);
     console.error('[로그인] 인증 코드 DM 발송 실패:', err.message);
@@ -494,7 +510,67 @@ app.post('/api/login', async (req, res) => {
     });
   }
 
-  res.json({ mfaRequired: true, mfaToken, expiresInMs: MFA_TTL_MS });
+  res.json({
+    mfaRequired: true,
+    mfaToken,
+    expiresInMs: MFA_TTL_MS,
+    resendCooldownMs: MFA_RESEND_COOLDOWN_MS,
+    resendsLeft: MFA_MAX_RESENDS,
+  });
+});
+
+/* 코드 재전송 - DM을 못 봤거나 시간이 지난 경우.
+ * 비밀번호를 다시 받지 않으므로, 도배와 무한 연장을 막는 제한을 둔다.
+ * 새 코드를 발급하고 이전 코드는 그 즉시 무효가 된다. */
+app.post('/api/login/resend', async (req, res) => {
+  const { mfaToken } = req.body || {};
+  const challenge = mfaToken && mfaChallenges.get(mfaToken);
+
+  // 비밀번호 확인으로부터 너무 오래 지났으면 처음부터 다시 받는다
+  if (!challenge || Date.now() - challenge.createdAt > MFA_ABSOLUTE_TTL_MS) {
+    if (mfaToken) mfaChallenges.delete(mfaToken);
+    return res.status(401).json({ error: '인증 시간이 지났습니다. 다시 로그인해 주세요.', code: 'MFA_EXPIRED' });
+  }
+
+  if (challenge.resends >= MFA_MAX_RESENDS) {
+    return res.status(429).json({
+      error: `재전송은 ${MFA_MAX_RESENDS}번까지 가능합니다. 다시 로그인해 주세요.`,
+      code: 'MFA_RESEND_LIMIT',
+    });
+  }
+
+  const waited = Date.now() - challenge.lastSentAt;
+  if (waited < MFA_RESEND_COOLDOWN_MS) {
+    return res.status(429).json({
+      error: `잠시 후 다시 시도해 주세요.`,
+      retryAfterMs: MFA_RESEND_COOLDOWN_MS - waited,
+    });
+  }
+
+  const code = newCode();
+  try {
+    await sendDirectMessage(ADMIN_SLACK_USER_ID, mfaCodeMessage(code));
+  } catch (err) {
+    console.error('[로그인] 인증 코드 재발송 실패:', err.message);
+    return res.status(500).json({
+      error: '인증 코드를 Slack으로 보내지 못했습니다. 관리자에게 문의해 주세요.',
+      code: 'MFA_SEND_FAILED',
+    });
+  }
+
+  // 이전 코드는 여기서 무효가 된다 (codeHash를 덮어쓰므로)
+  challenge.codeHash = hashCode(code);
+  challenge.expiresAt = Date.now() + MFA_TTL_MS;
+  challenge.attempts = 0;
+  challenge.resends += 1;
+  challenge.lastSentAt = Date.now();
+
+  res.json({
+    ok: true,
+    expiresInMs: MFA_TTL_MS,
+    resendCooldownMs: MFA_RESEND_COOLDOWN_MS,
+    resendsLeft: MFA_MAX_RESENDS - challenge.resends,
+  });
 });
 
 // 2차 인증 - Slack DM으로 받은 코드를 확인하고 세션을 발급한다

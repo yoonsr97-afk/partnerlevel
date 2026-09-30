@@ -10,7 +10,7 @@
 <link rel="icon" type="image/svg+xml" href="server/templates/partner_evaluation_icon.svg">
 <!-- style.css / app.js 를 고치면 아래 v 값을 올린다.
      안 올리면 브라우저가 예전 파일을 그대로 써서 수정이 반영되지 않는다. -->
-<link rel="stylesheet" href="style.css?v=6">
+<link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 
@@ -34,17 +34,24 @@
       <button type="submit" id="loginBtn" class="btn btn-primary login-btn">로그인</button>
     </form>
 
-    <!-- 2차 인증 - 비밀번호가 맞으면 이 단계로 바뀐다 -->
-    <form id="mfaForm" class="login-form hidden" autocomplete="off">
-      <p class="login-help" id="mfaHelp">Slack DM으로 보낸 6자리 코드를 입력해 주세요.</p>
-      <div class="login-field">
-        <label class="login-label" for="mfaCode">인증 코드</label>
-        <input class="login-input login-input-code" id="mfaCode" type="text" inputmode="numeric"
-               pattern="[0-9]*" maxlength="6" placeholder="000000" autocomplete="one-time-code">
-      </div>
+  </div>
+</div>
+
+<!-- 2차 인증 - 비밀번호가 맞으면 로그인 화면 위에 팝업으로 뜬다 -->
+<div id="mfaOverlay" class="modal-overlay mfa-overlay hidden">
+  <div class="modal-box mfa-box" role="dialog" aria-modal="true" aria-labelledby="mfaTitle">
+    <h3 class="mfa-title" id="mfaTitle">2차 인증</h3>
+    <p class="mfa-help">Slack DM으로 보낸 6자리 코드를 입력해 주세요.</p>
+    <p class="mfa-countdown" id="mfaCountdown">60초 남음</p>
+    <form id="mfaForm" autocomplete="off">
+      <input class="login-input login-input-code" id="mfaCode" type="text" inputmode="numeric"
+             pattern="[0-9]*" maxlength="6" placeholder="000000" autocomplete="one-time-code">
       <p id="mfaError" class="login-error hidden"></p>
-      <button type="submit" id="mfaBtn" class="btn btn-primary login-btn">확인</button>
-      <button type="button" id="mfaCancelBtn" class="btn btn-outline login-btn">처음으로</button>
+      <button type="submit" id="mfaBtn" class="btn btn-primary mfa-submit">확인</button>
+      <div class="mfa-links">
+        <button type="button" id="mfaResendBtn" class="btn-link">코드 재전송</button>
+        <button type="button" id="mfaCancelBtn" class="btn-link">처음으로</button>
+      </div>
     </form>
   </div>
 </div>
@@ -193,6 +200,6 @@
   </div>
 </div>
 
-<script src="app.js?v=6"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>

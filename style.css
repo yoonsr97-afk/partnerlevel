@@ -163,17 +163,51 @@ body {
   margin-top: 4px;
 }
 
-/* ── 2차 인증 단계 ── */
-.login-help {
+/* 이 파일에는 전역 .hidden 규칙이 없다. 컴포넌트마다 자기 .hidden을 정의한다. */
+.login-error.hidden {
+  display: none;
+}
+
+/* ===================== 2차 인증 팝업 ===================== */
+/* 로그인 화면 위에 겹쳐 뜬다. .login-overlay가 z-index 9999라서 그보다 높아야 한다.
+   선택자를 둘 다 적는 이유: .modal-overlay(z-index 1000)가 이 파일 뒤쪽에 있어서,
+   .mfa-overlay 한 개만 쓰면 우선순위가 같아 뒤에 나온 1000이 이긴다. */
+.modal-overlay.mfa-overlay {
+  z-index: 10000;
+}
+
+.mfa-box {
+  width: 340px;
+  text-align: center;
+}
+
+.mfa-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+
+.mfa-help {
   font-size: 13px;
   color: #475569;
-  margin: 0 0 4px;
-  text-align: center;
+  margin: 0 0 6px;
   line-height: 1.5;
 }
 
-.login-help-expired {
+/* 남은 시간은 안내 문구와 한 줄로 두면 "(43 / 초 남음)"처럼 어정쩡하게 잘린다.
+   줄을 나누고 높이를 고정해서 초가 바뀔 때 팝업이 흔들리지 않게 한다. */
+.mfa-countdown {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 18px;
+  min-height: 20px;
+}
+
+.mfa-countdown-expired {
   color: #dc2626;
+  font-weight: 500;
 }
 
 /* 6자리 코드는 한 글자씩 또렷하게 보이는 편이 오입력을 줄인다 */
@@ -188,6 +222,39 @@ body {
 .login-input-code::placeholder {
   letter-spacing: 8px;
   color: #cbd5e1;
+}
+
+.mfa-submit {
+  width: 100%;
+  height: 44px;
+  margin-top: 16px;
+}
+
+.mfa-links {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.btn-link {
+  background: none;
+  border: 0;
+  padding: 4px;
+  font-size: 13px;
+  color: var(--graphite);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.btn-link:hover:not(:disabled) {
+  color: var(--ink);
+}
+
+.btn-link:disabled {
+  color: #cbd5e1;
+  cursor: default;
+  text-decoration: none;
 }
 
 /* ===================== 헤더 (nav-bar-top) ===================== */

@@ -144,7 +144,7 @@ async function handleLogin(e) {
 
     // 2차 인증이 켜져 있으면 세션 대신 인증 코드 입력 단계로 넘어간다
     if (data.mfaRequired) {
-      showMfaStep(data.mfaToken, data.expiresInMs);
+      showMfaStep(data);
       return;
     }
 
@@ -169,57 +169,125 @@ function completeLogin(data) {
 }
 
 let mfaCountdownTimer = null;
+let mfaResendTimer = null;
+let mfaResendsLeft = 0;
 
 /* 코드 유효 시간이 1분이라 남은 시간을 보여준다.
  * 안 보여주면 조용히 만료돼서 왜 안 되는지 알 수 없다. */
 function startMfaCountdown(expiresInMs) {
-  const helpEl = document.getElementById('mfaHelp');
+  const el = document.getElementById('mfaCountdown');
   const deadline = Date.now() + (expiresInMs || 60000);
 
+  clearInterval(mfaCountdownTimer);
   const tick = () => {
     const left = Math.max(0, deadline - Date.now());
-    const sec = Math.ceil(left / 1000);
     if (left <= 0) {
       clearInterval(mfaCountdownTimer);
       mfaCountdownTimer = null;
-      helpEl.textContent = '인증 코드가 만료되었습니다. 처음부터 다시 로그인해 주세요.';
-      helpEl.classList.add('login-help-expired');
+      el.textContent = '코드가 만료되었습니다. 다시 받아주세요.';
+      el.classList.add('mfa-countdown-expired');
       return;
     }
-    helpEl.textContent = `Slack DM으로 보낸 6자리 코드를 입력해 주세요. (${sec}초 남음)`;
+    el.textContent = `${Math.ceil(left / 1000)}초 남음`;
   };
 
-  helpEl.classList.remove('login-help-expired');
+  el.classList.remove('mfa-countdown-expired');
   tick();
   mfaCountdownTimer = setInterval(tick, 1000);
 }
 
-function stopMfaCountdown() {
-  if (mfaCountdownTimer) {
-    clearInterval(mfaCountdownTimer);
-    mfaCountdownTimer = null;
-  }
+/* 재전송 버튼은 쿨다운이 끝날 때까지 잠근다.
+ * 서버도 같은 간격으로 막고 있어서, 여기서만 열어봐야 429만 돌아온다. */
+function startMfaResendCooldown(cooldownMs) {
+  const btn = document.getElementById('mfaResendBtn');
+  const until = Date.now() + (cooldownMs || 15000);
+
+  clearInterval(mfaResendTimer);
+  const tick = () => {
+    const left = Math.max(0, until - Date.now());
+    if (left <= 0) {
+      clearInterval(mfaResendTimer);
+      mfaResendTimer = null;
+      btn.disabled = mfaResendsLeft <= 0;
+      btn.textContent = mfaResendsLeft > 0 ? `코드 재전송 (${mfaResendsLeft}회 남음)` : '재전송 횟수 초과';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = `코드 재전송 (${Math.ceil(left / 1000)}초)`;
+  };
+
+  tick();
+  mfaResendTimer = setInterval(tick, 1000);
 }
 
-function showMfaStep(mfaToken, expiresInMs) {
-  pendingMfaToken = mfaToken;
-  document.getElementById('loginForm').classList.add('hidden');
-  document.getElementById('mfaForm').classList.remove('hidden');
+function stopMfaTimers() {
+  clearInterval(mfaCountdownTimer);
+  clearInterval(mfaResendTimer);
+  mfaCountdownTimer = null;
+  mfaResendTimer = null;
+}
+
+function showMfaStep(data) {
+  pendingMfaToken = data.mfaToken;
+  mfaResendsLeft = data.resendsLeft || 0;
+  document.getElementById('mfaOverlay').classList.remove('hidden');
   document.getElementById('mfaError').classList.add('hidden');
-  startMfaCountdown(expiresInMs);
+  startMfaCountdown(data.expiresInMs);
+  startMfaResendCooldown(data.resendCooldownMs);
   const input = document.getElementById('mfaCode');
   input.value = '';
   input.focus();
 }
 
-// 비밀번호 단계로 되돌린다. 발급된 코드는 서버에서 시간이 지나면 알아서 버려진다.
-function resetLoginForm() {
+// 팝업을 닫고 비밀번호 단계로 되돌린다.
+// 서버의 코드는 그대로 두고 시간이 지나면 알아서 버려진다.
+function closeMfaStep() {
   pendingMfaToken = null;
-  stopMfaCountdown();
-  document.getElementById('mfaForm').classList.add('hidden');
-  document.getElementById('loginForm').classList.remove('hidden');
+  stopMfaTimers();
+  document.getElementById('mfaOverlay').classList.add('hidden');
   document.getElementById('loginPassword').value = '';
   document.getElementById('loginError').classList.add('hidden');
+  document.getElementById('loginPassword').focus();
+}
+
+async function handleMfaResend() {
+  const btn = document.getElementById('mfaResendBtn');
+  const errorEl = document.getElementById('mfaError');
+  btn.disabled = true;
+  errorEl.classList.add('hidden');
+
+  try {
+    const res = await fetch(`${SHEETS_API_BASE_URL}/api/login/resend`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mfaToken: pendingMfaToken }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      if (data.code === 'MFA_EXPIRED') return expireMfaToLogin(data.error);
+      throw new Error(data.error || '재전송에 실패했습니다.');
+    }
+
+    mfaResendsLeft = data.resendsLeft;
+    startMfaCountdown(data.expiresInMs);
+    startMfaResendCooldown(data.resendCooldownMs);
+    const input = document.getElementById('mfaCode');
+    input.value = '';
+    input.focus();
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.remove('hidden');
+    btn.disabled = false;
+  }
+}
+
+// 코드가 완전히 폐기된 경우 - 팝업을 닫고 비밀번호부터 다시 받는다
+function expireMfaToLogin(message) {
+  closeMfaStep();
+  const loginError = document.getElementById('loginError');
+  loginError.textContent = message;
+  loginError.classList.remove('hidden');
 }
 
 async function handleMfaVerify(e) {
@@ -248,17 +316,14 @@ async function handleMfaVerify(e) {
 
     if (!res.ok) {
       // 코드가 폐기된 경우(시간 초과, 여러 번 틀림)에는 비밀번호부터 다시 받는다
-      if (data.code === 'MFA_EXPIRED') {
-        resetLoginForm();
-        const loginError = document.getElementById('loginError');
-        loginError.textContent = data.error;
-        loginError.classList.remove('hidden');
-        return;
+      if (data.code === 'MFA_EXPIRED' || data.code === 'MFA_RESEND_LIMIT') {
+        return expireMfaToLogin(data.error);
       }
       throw new Error(data.error || '인증에 실패했습니다.');
     }
 
-    stopMfaCountdown();
+    stopMfaTimers();
+    document.getElementById('mfaOverlay').classList.add('hidden');
     completeLogin(data);
   } catch (err) {
     errorEl.textContent = err.message;
@@ -309,7 +374,13 @@ async function initLogin() {
   }
   document.getElementById('loginForm').addEventListener('submit', handleLogin);
   document.getElementById('mfaForm').addEventListener('submit', handleMfaVerify);
-  document.getElementById('mfaCancelBtn').addEventListener('click', resetLoginForm);
+  document.getElementById('mfaCancelBtn').addEventListener('click', closeMfaStep);
+  document.getElementById('mfaResendBtn').addEventListener('click', handleMfaResend);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !document.getElementById('mfaOverlay').classList.contains('hidden')) {
+      closeMfaStep();
+    }
+  });
   // 숫자만 받는다 - 붙여넣기로 공백이나 하이픈이 섞여 들어오는 것을 막는다
   document.getElementById('mfaCode').addEventListener('input', (e) => {
     e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
