@@ -6,7 +6,8 @@ const crypto = require('crypto');
 const { google } = require('googleapis');
 const { getAuthClient } = require('./auth');
 const { sendExamEmails } = require('./mailer');
-const { generateCompanyResultPdf } = require('./certificate');
+const { generateCompanyResultPdf, EXAM_TYPE_LABELS } = require('./certificate');
+const { sendCertificateNotice, findChannel, listMappedCompanies, TEST_CHANNEL_ID } = require('./slack');
 const { RESULT_SHEETS, fetchResultSheetRows, findExistingResult, appendResultRow } = require('./examResults');
 const { generateAnswerKeyTemplate, gradePartnersFromForm } = require('./formsGrading');
 const { getExamFormStatus, createExamForm, publishExamForm, deleteExamForm } = require('./formCreation');
@@ -221,7 +222,9 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json());
+// Slack 발송 시 첨부 파일을 base64로 실어 보내서 기본값(100kb)으로는 부족하다.
+// base64는 원본보다 약 1/3 커지므로 여유를 두고 잡는다.
+app.use(express.json({ limit: '30mb' }));
 
 // 임시 진단 엔드포인트 - 배포 확인 후 삭제
 app.get('/api/health', async (req, res) => {
@@ -469,6 +472,102 @@ app.post('/api/exam-result', async (req, res) => {
     }
     res.status(500).json({ error: err.message });
   }
+});
+
+/* 첨부 파일 검증 - 화면에서 base64로 실어 보낸 것을 Buffer로 되돌린다.
+ * Slack 업로드 전에 개수/크기/형식을 걸러 실패를 앞당긴다. */
+const MAX_ATTACHMENTS = 5;
+const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024; // 파일당 10MB
+const MAX_ATTACHMENT_TOTAL = 20 * 1024 * 1024; // 합계 20MB
+
+function decodeAttachments(raw) {
+  if (!raw) return [];
+  if (!Array.isArray(raw)) throw new Error('attachments는 배열이어야 합니다.');
+  if (raw.length > MAX_ATTACHMENTS) {
+    throw new Error(`첨부는 최대 ${MAX_ATTACHMENTS}개까지 가능합니다. (요청 ${raw.length}개)`);
+  }
+
+  let total = 0;
+  return raw.map((a, i) => {
+    const filename = String((a && a.filename) || '').trim();
+    if (!filename) throw new Error(`${i + 1}번째 첨부의 파일명이 없습니다.`);
+    if (!a.data) throw new Error(`"${filename}"의 내용이 비어 있습니다.`);
+
+    const buffer = Buffer.from(String(a.data), 'base64');
+    if (buffer.length === 0) throw new Error(`"${filename}"을 읽지 못했습니다.`);
+    if (buffer.length > MAX_ATTACHMENT_BYTES) {
+      throw new Error(`"${filename}"이 너무 큽니다. 파일당 ${MAX_ATTACHMENT_BYTES / 1024 / 1024}MB까지 가능합니다.`);
+    }
+    total += buffer.length;
+    if (total > MAX_ATTACHMENT_TOTAL) {
+      throw new Error(`첨부 합계가 ${MAX_ATTACHMENT_TOTAL / 1024 / 1024}MB를 넘습니다.`);
+    }
+
+    return { filename, buffer, contentType: a.contentType || 'application/octet-stream' };
+  });
+}
+
+/* =========================================================================
+ * 수료증 Slack 발송
+ * 파트너사 채널에 결과 안내 메시지를 올리고, 그 스레드에 수료증 PDF를 붙인다.
+ * 수료증은 회사 단위 문서라 발송도 회사 단위로 한 번만 나간다.
+ * ========================================================================= */
+app.post('/api/slack-certificate', async (req, res) => {
+  if (!isAuthorized(req)) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+
+  const { company, examType, year, month, members } = req.body;
+  // test=true 면 파트너사 채널 대신 테스트 채널로 보낸다 (문구/첨부 형태 확인용)
+  const isTest = req.body.test === true;
+  if (!company || !examType || !year || !month || !Array.isArray(members) || members.length === 0) {
+    return res.status(400).json({ error: 'company, examType, year, month, members가 필요합니다.' });
+  }
+
+  // 관리자가 직접 고른 추가 첨부 (base64로 실려온다). 수료증 뒤에 순서대로 붙는다.
+  let extraFiles;
+  try {
+    extraFiles = decodeAttachments(req.body.attachments);
+  } catch (err) {
+    return res.status(400).json({ error: err.message, code: 'INVALID_ATTACHMENT' });
+  }
+
+  // 채널이 등록되지 않은 파트너사는 PDF를 만들기 전에 막는다 (불필요한 변환 비용 방지).
+  // 테스트 발송은 고정 채널로 나가므로 이 검사를 건너뛴다.
+  if (!isTest && !findChannel(company)) {
+    return res.status(400).json({
+      error: `"${company}"의 Slack 채널이 등록되어 있지 않습니다. server/slackChannels.json에 추가해 주세요.`,
+      code: 'SLACK_CHANNEL_NOT_MAPPED',
+    });
+  }
+
+  try {
+    const examLabel = EXAM_TYPE_LABELS[examType] || examType;
+    const pdfBuffer = await generateCompanyResultPdf({ company, examType, year, month, members });
+    const filename = `${company}_${examLabel}_${year}${String(month).padStart(2, '0')}_평가결과.pdf`;
+
+    const result = await sendCertificateNotice({
+      company, examLabel, year, month, pdfBuffer, filename, isTest, extraFiles,
+    });
+    res.json({ success: true, ...result, memberCount: members.length });
+  } catch (err) {
+    console.error(err);
+    // 설정/권한 문제는 서버 장애가 아니라 관리자가 고칠 수 있는 문제라 400으로 구분한다
+    const configErrors = ['SLACK_NOT_CONFIGURED', 'SLACK_CHANNEL_NOT_MAPPED', 'not_in_channel',
+      'channel_not_found', 'invalid_auth', 'not_authed', 'missing_scope', 'token_revoked'];
+    const status = configErrors.includes(err.code) ? 400 : 500;
+    res.status(status).json({ error: err.message, code: err.code || null });
+  }
+});
+
+// Slack 연동 상태 확인 - 토큰 설정 여부와 채널이 등록된 파트너사 목록
+app.get('/api/slack-status', (req, res) => {
+  if (!isAuthorized(req)) return res.status(401).json({ error: 'unauthorized' });
+  res.json({
+    configured: !!(process.env.SLACK_BOT_TOKEN || '').trim(),
+    mappedCompanies: listMappedCompanies(),
+    testChannelId: TEST_CHANNEL_ID,
+  });
 });
 
 /* =========================================================================

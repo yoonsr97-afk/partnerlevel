@@ -130,4 +130,4 @@ async function generateCompanyResultPdf({ company, examType, year, month, member
   }
 }
 
-module.exports = { generateCompanyResultPdf };
+module.exports = { generateCompanyResultPdf, EXAM_TYPE_LABELS };

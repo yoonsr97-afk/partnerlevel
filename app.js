@@ -216,6 +216,12 @@ const expandedGradingIds = new Set(); // AI 채점 탭에서 주관식 채점 �
 const selectedExamSendIds = new Set(); // 시험 발송 탭에서 체크박스로 선택된 파트너 id
 const sendingExamEmailIds = new Set(); // 현재 메일 발송 진행 중인 파트너 id (버튼 로딩 표시용)
 const downloadingCertificateIds = new Set(); // 현재 수료증(결과 안내 PDF) 다운로드 진행 중인 파트너 id
+const sendingSlackCompanies = new Set(); // Slack 발송 진행 중 (키: '회사명' 또는 '회사명::test')
+// Slack 발송 시 수료증 뒤에 같이 붙일 추가 파일. 회사명 → [{ filename, contentType, data(base64) }]
+// 발송은 회사 단위라 첨부도 회사 단위로 들고 있는다. 새로고침하면 사라지는 임시 선택이다.
+const slackAttachmentsByCompany = new Map();
+const MAX_SLACK_ATTACHMENTS = 5;
+const MAX_SLACK_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
 function getPartners() {
   return state.partnersByExam[state.examType];
@@ -344,6 +350,17 @@ function downloadCompanyCertificate({ company, examType, year, month, members })
     if (res.status === 401) { handleSessionExpired(); throw new Error('세션이 만료되었습니다.'); }
     if (!res.ok) return res.json().then((data) => { throw new Error(data.error || '수료증 생성에 실패했습니다.'); });
     return res.blob();
+  });
+}
+
+/* Slack 발송 - 서버가 수료증 PDF를 만들어 파트너사 채널에 안내 메시지를 올리고
+ * 그 스레드에 PDF를 댓글로 붙인다. 수료증과 마찬가지로 회사 단위로 한 번 나간다. */
+function sendCertificateToSlack({ company, examType, year, month, members, test = false, attachments = [] }) {
+  const url = `${SHEETS_API_BASE_URL}/api/slack-certificate?key=${encodeURIComponent(SHEETS_ACCESS_KEY)}`;
+  return apiFetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ company, examType, year, month, members, test, attachments }),
   });
 }
 
@@ -1525,9 +1542,53 @@ function renderPassListTab() {
     return;
   }
 
+  // Slack 발송은 회사 단위라, 같은 회사에서 맨 위 한 명에게만 버튼을 노출한다.
+  // 행마다 버튼을 두면 같은 메시지를 사람 수만큼 보내게 된다.
+  const slackButtonOwner = new Map(); // 회사명 → 그 회사에서 버튼을 표시할 파트너 id
+  examinees.forEach((p) => {
+    if (!slackButtonOwner.has(p.company)) slackButtonOwner.set(p.company, p.id);
+  });
+
   const rows = examinees.map((p, index) => {
     const passed = isPass(p.totalScore);
     const isDownloading = downloadingCertificateIds.has(p.id);
+    const isSlackOwner = slackButtonOwner.get(p.company) === p.id;
+    const isSending = sendingSlackCompanies.has(p.company);
+    const isTesting = sendingSlackCompanies.has(`${p.company}::test`);
+    const companyCount = examinees.filter((x) => x.company === p.company).length;
+
+    // 실제 발송 + 테스트 발송. 테스트는 파트너사 채널이 아니라 고정된 테스트 채널로만 나간다.
+    // (검증이 끝나면 테스트 버튼과 slack.js의 isTest 분기를 함께 걷어내면 된다)
+    const busy = isSending || isTesting;
+    const attached = slackAttachmentsByCompany.get(p.company) || [];
+    const attachedList = attached.length
+      ? `<ul class="slack-attach-list">${attached.map((f, i) => `
+          <li><span class="slack-attach-name" title="${escapeHtml(f.filename)}">${escapeHtml(f.filename)}</span>
+            <button type="button" class="slack-attach-remove" data-action="remove-slack-attachment"
+              data-id="${p.id}" data-index="${i}" ${busy ? 'disabled' : ''} title="첨부 제외">&times;</button>
+          </li>`).join('')}</ul>`
+      : '';
+
+    const slackButton = isSlackOwner
+      ? `<div class="slack-cell">
+           <div class="cell-actions">
+             <button class="btn btn-secondary btn-small" data-action="send-slack-certificate" data-id="${p.id}" ${busy ? 'disabled' : ''}
+               title="${escapeHtml(p.company)} 채널에 결과 안내와 수료증을 발송합니다 (대상 ${companyCount}명)">
+               ${isSending ? '<span class="btn-spinner"><span class="spinner"></span>발송중</span>' : 'Slack 발송'}
+             </button>
+             <button class="btn btn-outline btn-small" data-action="test-slack-certificate" data-id="${p.id}" ${busy ? 'disabled' : ''}
+               title="파트너사에는 가지 않습니다. 테스트 채널로만 발송해 문구와 첨부 형태를 확인합니다.">
+               ${isTesting ? '<span class="btn-spinner"><span class="spinner"></span>발송중</span>' : '테스트'}
+             </button>
+             <button class="btn btn-outline btn-small" data-action="pick-slack-attachment" data-id="${p.id}" ${busy ? 'disabled' : ''}
+               title="수료증 뒤에 같이 붙일 파일을 고릅니다 (최대 ${MAX_SLACK_ATTACHMENTS}개, 파일당 ${MAX_SLACK_ATTACHMENT_BYTES / 1024 / 1024}MB)">
+               첨부${attached.length ? ` ${attached.length}` : ''}
+             </button>
+           </div>
+           ${attachedList}
+         </div>`
+      : '<span class="cell-muted">-</span>';
+
     return `
       <tr>
         <td>${index + 1}</td>
@@ -1541,6 +1602,7 @@ function renderPassListTab() {
             ${isDownloading ? '<span class="btn-spinner"><span class="spinner"></span>생성중</span>' : '수료증'}
           </button>
         </td>
+        <td>${slackButton}</td>
       </tr>
     `;
   }).join('');
@@ -1548,7 +1610,7 @@ function renderPassListTab() {
   container.innerHTML = `
     <table class="data-table">
       <thead>
-        <tr><th>No.</th><th>이름</th><th>평가 항목 선택</th><th>사명</th><th>총점</th><th>합격여부</th><th>수료증</th></tr>
+        <tr><th>No.</th><th>이름</th><th>평가 항목 선택</th><th>사명</th><th>총점</th><th>합격여부</th><th>수료증</th><th>Slack</th></tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>
@@ -1556,6 +1618,143 @@ function renderPassListTab() {
 }
 
 /* 수료증 다운로드 - 같은 회사 소속 응시완료자 전원을 한 표에 묶어 PDF로 생성한다 */
+/* 수료증 뒤에 같이 붙일 파일 선택.
+ * 파일은 base64로 읽어 메모리에만 들고 있다가 발송할 때 서버로 넘긴다
+ * (별도 업로드 API 없이 발송 요청 한 번으로 처리된다). */
+function handlePickSlackAttachment(id) {
+  const partner = findPartner(id);
+  if (!partner) return;
+
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.multiple = true;
+  input.accept = '.pdf,application/pdf';
+
+  input.addEventListener('change', () => {
+    const picked = Array.from(input.files || []);
+    if (picked.length === 0) return;
+
+    const current = slackAttachmentsByCompany.get(partner.company) || [];
+    const room = MAX_SLACK_ATTACHMENTS - current.length;
+    if (room <= 0) {
+      showToast(`첨부는 최대 ${MAX_SLACK_ATTACHMENTS}개까지 가능합니다.`);
+      return;
+    }
+
+    const tooBig = picked.filter((f) => f.size > MAX_SLACK_ATTACHMENT_BYTES);
+    if (tooBig.length > 0) {
+      showToast(`${tooBig[0].name}이(가) 너무 큽니다. 파일당 ${MAX_SLACK_ATTACHMENT_BYTES / 1024 / 1024}MB까지 가능합니다.`);
+      return;
+    }
+
+    const accepted = picked.slice(0, room);
+    if (accepted.length < picked.length) {
+      showToast(`최대 ${MAX_SLACK_ATTACHMENTS}개까지만 담아 ${accepted.length}개만 추가했습니다.`);
+    }
+
+    Promise.all(accepted.map(readFileAsAttachment))
+      .then((files) => {
+        slackAttachmentsByCompany.set(partner.company, [...current, ...files]);
+        renderPassListTab();
+      })
+      .catch((err) => showToast(`파일을 읽지 못했습니다: ${err.message}`));
+  });
+
+  input.click();
+}
+
+// FileReader의 dataURL에서 base64 본문만 떼어낸다
+function readFileAsAttachment(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || '');
+      const base64 = result.slice(result.indexOf(',') + 1);
+      resolve({ filename: file.name, contentType: file.type || 'application/pdf', data: base64 });
+    };
+    reader.onerror = () => reject(reader.error || new Error('읽기 실패'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function handleRemoveSlackAttachment(id, index) {
+  const partner = findPartner(id);
+  if (!partner) return;
+  const current = slackAttachmentsByCompany.get(partner.company) || [];
+  const next = current.filter((_, i) => i !== Number(index));
+  if (next.length === 0) slackAttachmentsByCompany.delete(partner.company);
+  else slackAttachmentsByCompany.set(partner.company, next);
+  renderPassListTab();
+}
+
+/* Slack 발송 - 파트너사 채널에 결과 안내를 올리고 스레드에 수료증을 붙인다.
+ * 외부(파트너사)로 나가는 알림이라 되돌릴 수 없어서, 보내기 전에 대상과 인원을 확인받는다.
+ *
+ * isTest 를 주면 파트너사가 아니라 테스트 채널로만 나간다. 문구와 첨부 형태를 확인하는
+ * 용도이며, 검증이 끝나면 테스트 버튼과 서버의 isTest 분기를 같이 걷어내면 된다. */
+function handleSendSlackCertificate(id, { isTest = false } = {}) {
+  const partner = findPartner(id);
+  if (!partner) return;
+
+  const busyKey = isTest ? `${partner.company}::test` : partner.company;
+  // 실제 발송과 테스트가 동시에 나가지 않도록 둘 중 하나라도 진행 중이면 막는다
+  if (sendingSlackCompanies.has(partner.company) || sendingSlackCompanies.has(`${partner.company}::test`)) return;
+
+  const examType = state.examType;
+  const companyMembers = getPartners().filter((p) => p.company === partner.company
+    && p.examStatus === '응시완료' && p.approvalStatus === '승인완료');
+  if (companyMembers.length === 0) return;
+
+  const passCount = companyMembers.filter((p) => isPass(p.totalScore)).length;
+  const period = `${state.selectedYear}.${String(state.selectedMonth).padStart(2, '0')}월`;
+  const attachments = slackAttachmentsByCompany.get(partner.company) || [];
+  const attachNote = attachments.length
+    ? ` 수료증과 함께 ${attachments.length}개 파일이 더 붙습니다 (${attachments.map((f) => f.filename).join(', ')}).`
+    : '';
+  const detail = `대상 ${companyMembers.length}명 (합격 ${passCount}명) · 수료증 PDF가 스레드에 첨부됩니다.${attachNote}`;
+
+  const message = isTest
+    ? `[테스트] ${partner.company}의 ${period} 결과를 테스트 채널로 발송합니다.\n`
+      + `파트너사에는 가지 않습니다. ${detail}`
+    : `${partner.company} 채널로 ${period} 평가 결과를 발송하시겠습니까?\n${detail}`;
+
+  showModal(message, () => {
+    hideModal();
+    sendingSlackCompanies.add(busyKey);
+    renderPassListTab();
+
+    sendCertificateToSlack({
+      company: partner.company,
+      examType,
+      year: state.selectedYear,
+      month: state.selectedMonth,
+      members: companyMembers.map((p) => ({
+        name: p.name,
+        score: p.totalScore,
+        result: isPass(p.totalScore) ? '합격' : '불합격',
+      })),
+      test: isTest,
+      attachments,
+    })
+      .then((data) => {
+        showToast(isTest
+          ? `테스트 채널로 발송했습니다. (${partner.company} · 대상 ${companyMembers.length}명)`
+          : `${partner.company} 채널로 결과 안내와 수료증을 발송했습니다.`);
+        // 실제 발송이 끝나면 첨부 선택을 비운다 - 남겨두면 다음 발송에 같은 파일이 또 붙는다.
+        // 테스트는 형태만 보는 것이라 선택을 유지해 바로 실제 발송으로 이어갈 수 있게 한다.
+        if (!isTest) slackAttachmentsByCompany.delete(partner.company);
+        if (data && data.channelId) console.log('Slack 발송 결과:', data);
+      })
+      .catch((err) => {
+        showToast(`${isTest ? '테스트 ' : ''}Slack 발송에 실패했습니다: ${err.message}`);
+      })
+      .finally(() => {
+        sendingSlackCompanies.delete(busyKey);
+        renderPassListTab();
+      });
+  }, isTest ? { confirmText: '테스트 발송' } : {});
+}
+
 function handleDownloadCertificate(id) {
   const partner = findPartner(id);
   if (!partner || downloadingCertificateIds.has(partner.id)) return;
@@ -1776,6 +1975,10 @@ function initEventDelegation() {
     if (action === 'dash-goto') handleDashboardGoto(target.dataset.examType, target.dataset.gotoTab);
     if (action === 'send-single-email') handleSendSingleEmail(id);
     if (action === 'download-certificate') handleDownloadCertificate(id);
+    if (action === 'send-slack-certificate') handleSendSlackCertificate(id);
+    if (action === 'test-slack-certificate') handleSendSlackCertificate(id, { isTest: true });
+    if (action === 'pick-slack-attachment') handlePickSlackAttachment(id);
+    if (action === 'remove-slack-attachment') handleRemoveSlackAttachment(id, target.dataset.index);
     if (action === 'toggle-month-dropdown') {
       e.stopPropagation();
       toggleMonthDropdown();

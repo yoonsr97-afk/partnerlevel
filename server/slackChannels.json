@@ -1,0 +1,42 @@
+{
+  "_note": [
+    "파트너사별 Slack 채널 ID. 수료증 알림을 어느 채널로 보낼지 결정한다.",
+    "이름은 정규화해서 비교하므로 '(주)', 공백, 대소문자 차이는 무시된다.",
+    "  예) '(주)티아이에스', '티아이에스', '티아이 에스' → 모두 같은 항목으로 찾는다.",
+    "한 파트너가 여러 이름으로 불린다면 aliases 에 나열하면 된다.",
+    "봇이 채널에 초대되어 있어야 발송된다 - 채널에서 /invite @앱이름"
+  ],
+  "channels": [
+    { "company": "에이바이트", "channelId": "C07JQEN1QMS" },
+    { "company": "비테크놀로지", "channelId": "C07JR0W28AH" },
+    { "company": "크로니아이티", "channelId": "C07HMGELAP8" },
+    { "company": "씨티정보통신", "channelId": "C07JPKD9D9S" },
+    { "company": "다원티에스", "channelId": "C07JK4X9W92" },
+    { "company": "대신정보통신", "channelId": "C07HVK33CRJ" },
+    { "company": "엘림넷", "channelId": "C07J7V26YFR" },
+    { "company": "엑스퍼넷", "channelId": "C07JQDN85QC" },
+    { "company": "이지큐어", "channelId": "C07JJ8LP7PF", "aliases": ["이지시큐"] },
+    { "company": "프론텍", "channelId": "C07JMUV91PU" },
+    { "company": "대형웍스", "channelId": "C07JMUU4CCS" },
+    { "company": "구루앤", "channelId": "C07JFAF34CE" },
+    { "company": "글로웰시스템", "channelId": "C07HS79BQUD" },
+    { "company": "한기술", "channelId": "C07K6H0T3CZ" },
+    { "company": "현성솔루션", "channelId": "C07JA1DU2AJ" },
+    { "company": "아이앤이", "channelId": "C07JMUWJT2N" },
+    { "company": "인포인", "channelId": "C07JGL0V0F4" },
+    { "company": "아이스콥", "channelId": "C07JJ83UJVB" },
+    { "company": "아이티에이스", "channelId": "C07K5DXB788" },
+    { "company": "조은아이앤에스", "channelId": "C0B3UPD1D5J", "aliases": ["조은아이엔에스"] },
+    { "company": "론스텍", "channelId": "C07G4GL28KA" },
+    { "company": "엠아이비", "channelId": "C07KANL6CG0" },
+    { "company": "앰엔시큐어", "channelId": "C096L2K7S9L" },
+    { "company": "앤에스솔루션", "channelId": "C07K10WRFL1", "aliases": ["NS솔루션"] },
+    { "company": "오렌지시스", "channelId": "C07JMUZNQ9G" },
+    { "company": "시큐어월", "channelId": "C07JDBYGHNH" },
+    { "company": "씨큐윈", "channelId": "C07JM40LGHG" },
+    { "company": "성진정보통신", "channelId": "C07KB9HRL0Y" },
+    { "company": "에스엠인포메이션", "channelId": "C07JDBW6221" },
+    { "company": "티아이에스", "channelId": "C07JKKPGCR3", "aliases": ["(주)티아이에스"] },
+    { "company": "테인시스템", "channelId": "C07JJ7LHYLV", "aliases": ["태인시스템"] }
+  ]
+}

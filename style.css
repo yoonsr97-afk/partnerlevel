@@ -521,6 +521,77 @@ table.data-table.dash-table .dash-row-empty td {
   background-color: var(--fog);
 }
 
+/* 테스트 발송처럼 주 동작이 아닌 보조 버튼 - 실제 발송 버튼과 구분되게 연하게 둔다 */
+.btn-outline {
+  background-color: var(--canvas);
+  color: var(--graphite);
+  border: 1px dashed var(--hairline-strong);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background-color: var(--cloud);
+  color: var(--ink);
+}
+
+/* 한 셀에 버튼이 여러 개일 때 */
+.cell-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+  align-items: center;
+}
+
+/* Slack 셀 - 버튼 줄 아래에 선택한 첨부 파일 목록이 붙는다 */
+.slack-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.slack-attach-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.slack-attach-list li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--graphite);
+}
+
+/* 파일명이 길어도 표가 늘어나지 않게 자른다 */
+.slack-attach-name {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slack-attach-remove {
+  appearance: none;
+  border: none;
+  background: none;
+  color: var(--graphite);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+}
+
+.slack-attach-remove:hover:not(:disabled) {
+  color: var(--bloom-deep);
+}
+
+.slack-attach-remove:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .btn-danger {
   background-color: #dc2626;
   color: #ffffff;
@@ -845,6 +916,11 @@ table.data-table tbody tr:last-child td {
   padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-md);
   width: 360px;
   box-shadow: var(--elevation-3);
+}
+
+/* 값이 없는 셀 - Slack 발송 버튼처럼 회사당 한 번만 노출되는 칸의 빈자리 */
+.cell-muted {
+  color: var(--steel);
 }
 
 .modal-message {
