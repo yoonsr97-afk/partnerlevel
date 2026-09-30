@@ -37,6 +37,7 @@
     { "company": "성진정보통신", "channelId": "C07KB9HRL0Y" },
     { "company": "에스엠인포메이션", "channelId": "C07JDBW6221" },
     { "company": "티아이에스", "channelId": "C07JKKPGCR3", "aliases": ["(주)티아이에스"] },
-    { "company": "테인시스템", "channelId": "C07JJ7LHYLV", "aliases": ["태인시스템"] }
+    { "company": "테인시스템", "channelId": "C07JJ7LHYLV", "aliases": ["태인시스템"] },
+    { "company": "태성인포텍", "channelId": "C07J7UP9MCP" }
   ]
 }
