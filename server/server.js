@@ -145,7 +145,7 @@ setInterval(() => {
  * 설정을 깜빡한 채 배포해서 아무도 못 들어가는 상황을 만들지 않기 위해서다.
  * ------------------------------------------------------------------------- */
 const ADMIN_SLACK_USER_ID = (process.env.ADMIN_SLACK_USER_ID || '').trim();
-const MFA_TTL_MS = 5 * 60 * 1000;   // 코드 유효 시간
+const MFA_TTL_MS = 60 * 1000;       // 코드 유효 시간
 const MFA_MAX_ATTEMPTS = 5;         // 코드 입력 시도 횟수
 
 // mfaToken → { username, codeHash, expiresAt, attempts }

@@ -172,6 +172,10 @@ body {
   line-height: 1.5;
 }
 
+.login-help-expired {
+  color: #dc2626;
+}
+
 /* 6자리 코드는 한 글자씩 또렷하게 보이는 편이 오입력을 줄인다 */
 .login-input-code {
   text-align: center;

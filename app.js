@@ -144,7 +144,7 @@ async function handleLogin(e) {
 
     // 2차 인증이 켜져 있으면 세션 대신 인증 코드 입력 단계로 넘어간다
     if (data.mfaRequired) {
-      showMfaStep(data.mfaToken);
+      showMfaStep(data.mfaToken, data.expiresInMs);
       return;
     }
 
@@ -168,11 +168,45 @@ function completeLogin(data) {
   startSessionTimer(data.expiresAt);
 }
 
-function showMfaStep(mfaToken) {
+let mfaCountdownTimer = null;
+
+/* 코드 유효 시간이 1분이라 남은 시간을 보여준다.
+ * 안 보여주면 조용히 만료돼서 왜 안 되는지 알 수 없다. */
+function startMfaCountdown(expiresInMs) {
+  const helpEl = document.getElementById('mfaHelp');
+  const deadline = Date.now() + (expiresInMs || 60000);
+
+  const tick = () => {
+    const left = Math.max(0, deadline - Date.now());
+    const sec = Math.ceil(left / 1000);
+    if (left <= 0) {
+      clearInterval(mfaCountdownTimer);
+      mfaCountdownTimer = null;
+      helpEl.textContent = '인증 코드가 만료되었습니다. 처음부터 다시 로그인해 주세요.';
+      helpEl.classList.add('login-help-expired');
+      return;
+    }
+    helpEl.textContent = `Slack DM으로 보낸 6자리 코드를 입력해 주세요. (${sec}초 남음)`;
+  };
+
+  helpEl.classList.remove('login-help-expired');
+  tick();
+  mfaCountdownTimer = setInterval(tick, 1000);
+}
+
+function stopMfaCountdown() {
+  if (mfaCountdownTimer) {
+    clearInterval(mfaCountdownTimer);
+    mfaCountdownTimer = null;
+  }
+}
+
+function showMfaStep(mfaToken, expiresInMs) {
   pendingMfaToken = mfaToken;
   document.getElementById('loginForm').classList.add('hidden');
   document.getElementById('mfaForm').classList.remove('hidden');
   document.getElementById('mfaError').classList.add('hidden');
+  startMfaCountdown(expiresInMs);
   const input = document.getElementById('mfaCode');
   input.value = '';
   input.focus();
@@ -181,6 +215,7 @@ function showMfaStep(mfaToken) {
 // 비밀번호 단계로 되돌린다. 발급된 코드는 서버에서 시간이 지나면 알아서 버려진다.
 function resetLoginForm() {
   pendingMfaToken = null;
+  stopMfaCountdown();
   document.getElementById('mfaForm').classList.add('hidden');
   document.getElementById('loginForm').classList.remove('hidden');
   document.getElementById('loginPassword').value = '';
@@ -223,6 +258,7 @@ async function handleMfaVerify(e) {
       throw new Error(data.error || '인증에 실패했습니다.');
     }
 
+    stopMfaCountdown();
     completeLogin(data);
   } catch (err) {
     errorEl.textContent = err.message;
