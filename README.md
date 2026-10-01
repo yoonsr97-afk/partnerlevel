@@ -121,10 +121,14 @@ SERVICE_ACCOUNT_KEY_PATH=./service-account.json
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD_HASH=$2b$12$...
 
-# 2차 인증 (선택) - 설정하면 로그인 시 Slack DM으로 6자리 코드가 온다.
-# 값을 비우면 2차 인증 없이 동작한다. Slack 프로필 > 더보기 > 멤버 ID 복사.
-# 봇에 im:write 권한이 필요하다.
+# 2차 인증 (선택) - 로그인 시 6자리 코드를 Slack으로 보낸다.
+# 아래 둘 중 원하는 쪽만, 또는 둘 다 설정한다. 모두 비우면 2차 인증 없이 동작한다.
+#   - DM: Slack 프로필 > 더보기 > 멤버 ID 복사. 봇에 im:write 권한과
+#         App Home > Show Tabs > Messages Tab 활성화가 필요하다.
+#   - 채널: 봇을 초대해 둔 채널. 그 채널을 볼 수 있는 사람은 코드도 볼 수 있으므로
+#           관리자와 봇만 있는 비공개 채널을 쓴다.
 ADMIN_SLACK_USER_ID=U...
+ADMIN_MFA_CHANNEL_ID=C...
 
 # Gmail 발송 계정
 MAIL_USER=...@gmail.com

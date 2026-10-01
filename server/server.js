@@ -8,7 +8,8 @@ const { google } = require('googleapis');
 const { getAuthClient } = require('./auth');
 const { sendExamEmails } = require('./mailer');
 const { generateCompanyResultPdf, EXAM_TYPE_LABELS } = require('./certificate');
-const { sendCertificateNotice, sendDirectMessage, findChannel, listMappedCompanies, TEST_CHANNEL_ID } = require('./slack');
+const { sendCertificateNotice, sendDirectMessage, sendChannelMessage,
+  findChannel, listMappedCompanies, TEST_CHANNEL_ID } = require('./slack');
 const { RESULT_SHEETS, fetchResultSheetRows, findExistingResult, appendResultRow } = require('./examResults');
 const { generateAnswerKeyTemplate, gradePartnersFromForm } = require('./formsGrading');
 const { getExamFormStatus, createExamForm, publishExamForm, deleteExamForm } = require('./formCreation');
@@ -138,14 +139,21 @@ setInterval(() => {
 /* -------------------------------------------------------------------------
  * 2차 인증 (Slack DM으로 받는 일회용 코드)
  *
- * 비밀번호가 맞으면 바로 세션을 주지 않고, 관리자 Slack DM으로 6자리 코드를
+ * 비밀번호가 맞으면 바로 세션을 주지 않고, 관리자 Slack으로 6자리 코드를
  * 보낸 뒤 그 코드까지 맞아야 세션을 발급한다. 비밀번호가 새더라도 관리자의
  * Slack 계정이 없으면 들어올 수 없다.
  *
- * ADMIN_SLACK_USER_ID 가 없으면 2차 인증을 건너뛰고 예전처럼 바로 로그인된다.
- * 설정을 깜빡한 채 배포해서 아무도 못 들어가는 상황을 만들지 않기 위해서다.
+ * 받는 곳은 두 가지이고 원하는 쪽만, 또는 둘 다 설정할 수 있다.
+ *   ADMIN_SLACK_USER_ID    - 관리자에게 DM
+ *   ADMIN_MFA_CHANNEL_ID   - 지정한 채널에 게시
+ * 둘 다 비어 있으면 2차 인증을 건너뛰고 예전처럼 바로 로그인된다. 설정을
+ * 깜빡한 채 배포해서 아무도 못 들어가는 상황을 만들지 않기 위해서다.
+ *
+ * 채널로 보내는 경우, 그 채널을 볼 수 있는 사람은 누구나 코드를 볼 수 있다.
+ * 관리자 본인과 봇만 있는 비공개 채널을 쓰지 않으면 2차 인증의 의미가 옅어진다.
  * ------------------------------------------------------------------------- */
 const ADMIN_SLACK_USER_ID = (process.env.ADMIN_SLACK_USER_ID || '').trim();
+const ADMIN_MFA_CHANNEL_ID = (process.env.ADMIN_MFA_CHANNEL_ID || '').trim();
 const MFA_TTL_MS = 60 * 1000;             // 코드 유효 시간
 const MFA_MAX_ATTEMPTS = 5;               // 코드 입력 시도 횟수
 const MFA_RESEND_COOLDOWN_MS = 15 * 1000; // 재전송 간격 (DM 도배 방지)
@@ -157,7 +165,35 @@ const MFA_ABSOLUTE_TTL_MS = 10 * 60 * 1000;
 const mfaChallenges = new Map();
 
 function mfaEnabled() {
-  return !!(ADMIN_SLACK_USER_ID && process.env.SLACK_BOT_TOKEN);
+  return !!(process.env.SLACK_BOT_TOKEN && (ADMIN_SLACK_USER_ID || ADMIN_MFA_CHANNEL_ID));
+}
+
+/* 설정된 곳으로 코드를 보낸다.
+ * 한 곳이라도 성공하면 로그인을 진행시킨다 - DM이 막혀도(messages_tab_disabled 등)
+ * 채널이 살아 있으면 관리자는 코드를 받을 수 있다. 전부 실패해야 로그인을 막는다. */
+async function deliverMfaCode(code) {
+  const targets = [];
+  if (ADMIN_SLACK_USER_ID) targets.push({ label: 'DM', send: () => sendDirectMessage(ADMIN_SLACK_USER_ID, mfaCodeMessage(code)) });
+  if (ADMIN_MFA_CHANNEL_ID) targets.push({ label: '채널', send: () => sendChannelMessage(ADMIN_MFA_CHANNEL_ID, mfaCodeMessage(code)) });
+
+  const failures = [];
+  let delivered = 0;
+  for (const t of targets) {
+    try {
+      await t.send();
+      delivered += 1;
+    } catch (err) {
+      failures.push(`${t.label}: ${err.message}`);
+    }
+  }
+
+  // 일부만 실패하면 로그인은 되지만 설정이 깨진 상태이므로 로그에 남긴다
+  if (failures.length) console.error('[로그인] 인증 코드 발송 실패 -', failures.join(' / '));
+  if (delivered === 0) {
+    const err = new Error(failures[0] || '인증 코드를 보낼 대상이 없습니다.');
+    err.code = 'MFA_SEND_FAILED';
+    throw err;
+  }
 }
 
 // 코드는 평문으로 들고 있지 않는다 (메모리 덤프/로그에 남지 않도록)
@@ -500,7 +536,7 @@ app.post('/api/login', async (req, res) => {
 
   const { token: mfaToken, code } = createMfaChallenge(username);
   try {
-    await sendDirectMessage(ADMIN_SLACK_USER_ID, mfaCodeMessage(code));
+    await deliverMfaCode(code);
   } catch (err) {
     mfaChallenges.delete(mfaToken);
     console.error('[로그인] 인증 코드 DM 발송 실패:', err.message);
@@ -549,7 +585,7 @@ app.post('/api/login/resend', async (req, res) => {
 
   const code = newCode();
   try {
-    await sendDirectMessage(ADMIN_SLACK_USER_ID, mfaCodeMessage(code));
+    await deliverMfaCode(code);
   } catch (err) {
     console.error('[로그인] 인증 코드 재발송 실패:', err.message);
     return res.status(500).json({

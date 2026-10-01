@@ -86,6 +86,10 @@ const SLACK_ERROR_HINTS = {
   token_revoked: 'SLACK_BOT_TOKEN이 폐기되었습니다. 새로 발급해 주세요.',
   missing_scope: '봇 권한이 부족합니다. chat:write, files:write 스코프를 추가하고 앱을 다시 설치해 주세요.',
   is_archived: '보관된(archived) 채널입니다.',
+  messages_tab_disabled: 'Slack 앱의 메시지 탭이 꺼져 있어 DM을 보낼 수 없습니다. '
+    + 'api.slack.com/apps > App Home > Show Tabs 에서 Messages Tab을 켜주세요.',
+  cannot_dm_bot: '봇 계정에는 DM을 보낼 수 없습니다. ADMIN_SLACK_USER_ID를 본인 멤버 ID로 설정해 주세요.',
+  user_not_found: 'Slack 사용자를 찾을 수 없습니다. ADMIN_SLACK_USER_ID 값을 확인해 주세요.',
   restricted_action: '워크스페이스 정책으로 차단되었습니다.',
 };
 
@@ -144,6 +148,11 @@ async function callSlackForm(method, params) {
  * 봇이 사용자에게 DM을 보내려면 먼저 대화를 열어 채널 ID를 받아야 한다.
  * conversations.open 에는 im:write 권한이 필요하다.
  * ------------------------------------------------------------------------- */
+async function sendChannelMessage(channelId, text) {
+  await callSlack('chat.postMessage', { channel: channelId, text });
+  return channelId;
+}
+
 async function sendDirectMessage(userId, text) {
   const opened = await callSlack('conversations.open', { users: userId });
   const channelId = opened.channel && opened.channel.id;
@@ -252,6 +261,7 @@ async function sendCertificateNotice({
 module.exports = {
   sendCertificateNotice,
   sendDirectMessage,
+  sendChannelMessage,
   findChannel,
   listMappedCompanies,
   normalizeCompany,
