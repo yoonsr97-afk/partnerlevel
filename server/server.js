@@ -12,7 +12,7 @@ const { sendCertificateNotice, sendDirectMessage, sendChannelMessage,
   findChannel, listMappedCompanies, TEST_CHANNEL_ID } = require('./slack');
 const { RESULT_SHEETS, fetchResultSheetRows, findExistingResult, appendResultRow } = require('./examResults');
 const { generateAnswerKeyTemplate, gradePartnersFromForm } = require('./formsGrading');
-const { getExamFormStatus, createExamForm, publishExamForm, deleteExamForm } = require('./formCreation');
+const { getExamFormStatus, createExamForm, publishExamForm, setExamFormAccepting, deleteExamForm } = require('./formCreation');
 const { matchExamResponses } = require('./examCheck');
 
 const PORT = process.env.PORT || 4000;
@@ -759,6 +759,11 @@ app.post('/api/send-exam-emails', async (req, res) => {
         error: `${year}년 ${month}월 ${examType} ${level} 폼이 아직 게시되지 않았습니다. 먼저 게시한 뒤 발송해주세요.`,
       });
     }
+    if (status.form && !status.form.acceptingResponses) {
+      return res.status(409).json({
+        error: `${year}년 ${month}월 ${examType} ${level} 폼이 응답 마감 상태입니다. 응답 받기를 다시 켠 뒤 발송해주세요.`,
+      });
+    }
     formUrl = status.form?.respondentUrl || '';
   } catch (e) {
     console.warn('시험 폼 URL 조회 실패 (링크 없이 발송):', e.message);
@@ -1049,6 +1054,24 @@ app.post('/api/exam-forms/publish', async (req, res) => {
 
   try {
     const result = await publishExamForm(formId);
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 응답 받기 켜기/끄기 (게시 상태는 유지)
+app.post('/api/exam-forms/accepting', async (req, res) => {
+  if (!isAuthorized(req)) return res.status(401).json({ error: 'unauthorized' });
+
+  const { formId, accepting } = req.body;
+  if (!formId || typeof accepting !== 'boolean') {
+    return res.status(400).json({ error: 'formId, accepting(boolean) 필요' });
+  }
+
+  try {
+    const result = await setExamFormAccepting(formId, accepting);
     res.json(result);
   } catch (err) {
     console.error(err);

@@ -1499,6 +1499,15 @@ async function fetchPublishExamForm(formId) {
   });
 }
 
+async function fetchSetExamFormAccepting(formId, accepting) {
+  const url = `${SHEETS_API_BASE_URL}/api/exam-forms/accepting?key=${apiKey()}`;
+  return apiFetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ formId, accepting }),
+  });
+}
+
 function renderFormCreateTab() {
   const container = document.getElementById('formCreateContent');
   if (!container) return;
@@ -1520,19 +1529,25 @@ function renderFormCreateTab() {
   const typeBadgeText = isMid ? '중급' : `${s.formType}형`;
   const templateEnvKey = isMid ? 'TEMPLATE_FORM_ID_NAC_MID' : `TEMPLATE_FORM_ID_NAC_${s.formType}`;
 
+  const publishBadge = !s.form?.published
+    ? { cls: 'badge-warning', text: '미게시' }
+    : s.form.acceptingResponses
+      ? { cls: 'badge-success', text: '게시됨' }
+      : { cls: 'badge-muted', text: '응답 마감' };
+
   const formRow = s.form ? `
     <div class="form-create-card">
       <div class="form-create-card-header">
         <span class="form-create-type-badge">${typeBadgeText}</span>
         <span class="form-create-name">${escapeHtml(s.form.name)}</span>
-        <span class="badge ${s.form.published ? 'badge-success' : 'badge-warning'}">
-          ${s.form.published ? '게시됨' : '미게시'}
-        </span>
+        <span class="badge ${publishBadge.cls}">${publishBadge.text}</span>
       </div>
       <div class="form-create-card-actions">
         <a href="${s.form.editUrl}" target="_blank" class="btn btn-secondary btn-sm">편집 열기</a>
         <a href="${s.form.respondentUrl}" target="_blank" class="btn btn-secondary btn-sm">응시자 링크</a>
         ${!s.form.published ? `<button class="btn btn-primary btn-sm" data-action="publish-exam-form" data-form-id="${s.form.id}">게시</button>` : ''}
+        ${s.form.published && s.form.acceptingResponses ? `<button class="btn btn-secondary btn-sm" data-action="set-exam-form-accepting" data-form-id="${s.form.id}" data-accepting="false">응답 마감</button>` : ''}
+        ${s.form.published && !s.form.acceptingResponses ? `<button class="btn btn-primary btn-sm" data-action="set-exam-form-accepting" data-form-id="${s.form.id}" data-accepting="true">응답 다시 받기</button>` : ''}
         <button class="btn btn-danger btn-sm" data-action="delete-exam-form" data-form-id="${s.form.id}">삭제</button>
       </div>
     </div>` : `
@@ -1590,6 +1605,30 @@ async function handlePublishExamForm(formId) {
     showToast(`게시 실패: ${err.message}`);
     if (btn) { btn.disabled = false; btn.textContent = '게시'; }
   }
+}
+
+function handleSetExamFormAccepting(formId, accepting) {
+  const run = async () => {
+    const btn = document.querySelector(`[data-action="set-exam-form-accepting"][data-form-id="${formId}"]`);
+    const label = btn?.textContent;
+    if (btn) { btn.disabled = true; btn.textContent = '변경 중...'; }
+    try {
+      await fetchSetExamFormAccepting(formId, accepting);
+      showToast(accepting ? '응답 받기를 다시 켰습니다.' : '응답을 마감했습니다. 응시자는 더 이상 제출할 수 없습니다.');
+      formCreateCache = await fetchExamFormStatus();
+      renderFormCreateTab();
+    } catch (err) {
+      showToast(`응답 설정 변경 실패: ${err.message}`);
+      if (btn) { btn.disabled = false; btn.textContent = label; }
+    }
+  };
+
+  if (accepting) { run(); return; }
+  showModal(
+    '응답을 마감하면 응시자가 더 이상 답안을 제출할 수 없습니다.\n마감하시겠습니까?',
+    () => { hideModal(); run(); },
+    { confirmText: '응답 마감', confirmClass: 'btn-danger' }
+  );
 }
 
 async function fetchDeleteExamForm(formId) {
@@ -2179,6 +2218,7 @@ function initEventDelegation() {
     if (action === 'refresh-form-status') handleRefreshFormStatus();
     if (action === 'create-exam-form') handleCreateExamForm();
     if (action === 'publish-exam-form') handlePublishExamForm(target.dataset.formId);
+    if (action === 'set-exam-form-accepting') handleSetExamFormAccepting(target.dataset.formId, target.dataset.accepting === 'true');
     if (action === 'delete-exam-form') handleDeleteExamForm(target.dataset.formId);
     if (action === 'logout') handleLogout();
     if (action === 'session-refresh') handleSessionRefresh();

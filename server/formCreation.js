@@ -184,6 +184,7 @@ async function getExamFormStatus(year, month, level = '초급', examType) {
   const existing = await findExistingMonthForm(drive, examFolder.id, year, month, level, examType);
 
   let published = false;
+  let acceptingResponses = false;
   let respondentUrl = '';
   let editUrl = '';
 
@@ -197,9 +198,11 @@ async function getExamFormStatus(year, month, level = '초급', examType) {
       const formData = await forms.forms.get({ formId: existing.id });
       const publishState = formData.data.publishSettings?.publishState;
       published = publishState?.isPublished === true;
+      acceptingResponses = published && publishState?.isAcceptingResponses === true;
       if (formData.data.responderUri) respondentUrl = formData.data.responderUri;
     } catch {
       published = false;
+      acceptingResponses = false;
     }
   }
 
@@ -209,7 +212,7 @@ async function getExamFormStatus(year, month, level = '초급', examType) {
     templateConfigured: !!templateId,
     targetFolder: { id: examFolder.id, name: examFolder.name },
     form: existing
-      ? { id: existing.id, name: existing.name, editUrl, respondentUrl, published }
+      ? { id: existing.id, name: existing.name, editUrl, respondentUrl, published, acceptingResponses }
       : null,
   };
 }
@@ -285,6 +288,27 @@ async function createExamForm(year, month, level = '초급', examType = 'NAC') {
  * - isPublished: true → 응답자 링크 접근 가능 / isAcceptingResponses: true → 응답 수락
  * ========================================================================= */
 async function publishExamForm(formId) {
+  const data = await setPublishState(formId, { isPublished: true, isAcceptingResponses: true });
+  const respondentUrl = data.responderUri
+    || `https://docs.google.com/forms/d/${formId}/viewform`;
+
+  return {
+    respondentUrl,
+    editUrl: `https://docs.google.com/forms/d/${formId}/edit`,
+    published: true,
+  };
+}
+
+/* =========================================================================
+ * 응답 받기 켜기/끄기: 게시 상태는 유지하고 isAcceptingResponses 만 바꾼다
+ * - 끄면 응시자 링크는 열리지만 "더 이상 응답을 받지 않습니다" 안내만 보인다
+ * ========================================================================= */
+async function setExamFormAccepting(formId, accepting) {
+  await setPublishState(formId, { isPublished: true, isAcceptingResponses: accepting });
+  return { acceptingResponses: accepting };
+}
+
+async function setPublishState(formId, publishState) {
   const authClient = getAuthClient(['https://www.googleapis.com/auth/forms.body']);
   const { token } = await authClient.getAccessToken();
 
@@ -297,27 +321,17 @@ async function publishExamForm(formId) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        publishSettings: {
-          publishState: { isPublished: true, isAcceptingResponses: true },
-        },
+        publishSettings: { publishState },
       }),
     }
   );
 
   if (!res.ok) {
     const errData = await res.json().catch(() => ({}));
-    throw new Error(errData?.error?.message || `게시 실패 (HTTP ${res.status})`);
+    throw new Error(errData?.error?.message || `게시 설정 변경 실패 (HTTP ${res.status})`);
   }
 
-  const data = await res.json().catch(() => ({}));
-  const respondentUrl = data.responderUri
-    || `https://docs.google.com/forms/d/${formId}/viewform`;
-
-  return {
-    respondentUrl,
-    editUrl: `https://docs.google.com/forms/d/${formId}/edit`,
-    published: true,
-  };
+  return res.json().catch(() => ({}));
 }
 
 /* =========================================================================
@@ -339,6 +353,7 @@ module.exports = {
   getExamFormStatus,
   createExamForm,
   publishExamForm,
+  setExamFormAccepting,
   deleteExamForm,
   // 채점 모듈(formsGrading)도 같은 파일명 규칙으로 폼을 찾아야 해서 함께 노출한다
   EXAM_FORM_SPECS,
